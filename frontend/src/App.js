@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Analytics } from '@vercel/analytics/react';
 import KegiatanPage from './pages/KegiatanPage';
 import PengaturanPage from './pages/PengaturanPage';
 import BottomNav from './components/BottomNav';
@@ -15,6 +16,7 @@ function App() {
       <div className="max-w-md mx-auto">
         <BottomNav activeTab={activeTab} onTabChange={setActiveTab} />
       </div>
+      <Analytics />
     </div>
   );
 }
