@@ -11,46 +11,34 @@ const PreviewModal = ({ monthData, settings, onClose }) => {
 
   const [blobUrl, setBlobUrl] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [genError, setGenError] = useState(null);
 
   useEffect(() => {
-    let url = null;
+    let objectUrl = null;
     pdf(<LaporanPDF monthData={monthData} settings={settings} />)
       .toBlob()
       .then(blob => {
-        url = URL.createObjectURL(blob);
-        setBlobUrl(url);
+        objectUrl = URL.createObjectURL(blob);
+        setBlobUrl(objectUrl);
         setLoading(false);
       })
       .catch(err => {
         console.error('PDF error:', err);
-        setError('Gagal membuat PDF. Silakan coba lagi.');
+        setGenError('Gagal membuat PDF. Silakan coba lagi.');
         setLoading(false);
       });
-    return () => { if (url) URL.revokeObjectURL(url); };
+    // Revoke blob URL only when modal unmounts
+    return () => { if (objectUrl) URL.revokeObjectURL(objectUrl); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const handleDownload = () => {
-    if (!blobUrl) return;
-    const a = document.createElement('a');
-    a.href = blobUrl;
-    a.download = namaFile;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-  };
-
-  const handleViewPDF = () => {
-    if (!blobUrl) return;
-    window.open(blobUrl, '_blank', 'noopener,noreferrer');
-  };
-
-  const savedDaysCount = monthData?.hari?.filter(h => h.disimpan && h.kegiatan?.some(k => k.namaKegiatan?.trim())).length || 0;
+  const savedDaysCount = monthData?.hari?.filter(
+    h => h.disimpan && h.kegiatan?.some(k => k.namaKegiatan?.trim())
+  ).length || 0;
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-gray-50" data-testid="preview-modal">
-      {/* Top Bar */}
+      {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 bg-white shadow-sm flex-shrink-0">
         <div>
           <h2 className="text-base font-semibold text-gray-900">Laporan PDF</h2>
@@ -65,8 +53,10 @@ const PreviewModal = ({ monthData, settings, onClose }) => {
         </button>
       </div>
 
-      {/* Content Area */}
+      {/* Content */}
       <div className="flex-1 flex flex-col items-center justify-center px-6 py-8">
+
+        {/* Loading */}
         {loading && (
           <div className="text-center">
             <div className="w-20 h-20 bg-blue-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
@@ -77,13 +67,14 @@ const PreviewModal = ({ monthData, settings, onClose }) => {
           </div>
         )}
 
-        {error && (
+        {/* Error */}
+        {genError && (
           <div className="text-center">
             <div className="w-20 h-20 bg-red-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
               <AlertCircle size={36} className="text-red-500" />
             </div>
             <p className="text-base font-semibold text-gray-800 mb-1">Gagal Membuat PDF</p>
-            <p className="text-sm text-gray-500 mb-4">{error}</p>
+            <p className="text-sm text-gray-500 mb-4">{genError}</p>
             <button
               onClick={onClose}
               className="px-5 py-2.5 bg-gray-800 text-white rounded-xl text-sm font-medium"
@@ -93,9 +84,11 @@ const PreviewModal = ({ monthData, settings, onClose }) => {
           </div>
         )}
 
-        {blobUrl && !loading && (
+        {/* PDF Ready — gunakan <a> tag asli agar tidak diblokir ekstensi Chrome */}
+        {!loading && !genError && blobUrl && (
           <div className="w-full max-w-sm">
-            {/* File Card */}
+
+            {/* File info card */}
             <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5 mb-6 text-center">
               <div className="w-16 h-16 bg-blue-50 rounded-2xl flex items-center justify-center mx-auto mb-3">
                 <FileText size={32} className="text-blue-700" />
@@ -104,34 +97,39 @@ const PreviewModal = ({ monthData, settings, onClose }) => {
               <p className="text-xs text-gray-400">{savedDaysCount} hari kerja tersimpan</p>
             </div>
 
-            {/* Action Buttons */}
-            <div className="space-y-3">
-              <button
-                onClick={handleViewPDF}
-                className="w-full h-13 py-3.5 rounded-xl bg-blue-900 text-white text-sm font-semibold flex items-center justify-center gap-2 hover:bg-blue-800 transition-colors active:scale-98"
-                data-testid="view-pdf-btn"
-              >
-                <ExternalLink size={17} />
-                Buka PDF di Tab Baru
-              </button>
-              <button
-                onClick={handleDownload}
-                className="w-full h-13 py-3.5 rounded-xl border-2 border-blue-900 text-blue-900 text-sm font-semibold flex items-center justify-center gap-2 hover:bg-blue-50 transition-colors active:scale-98"
-                data-testid="download-pdf-btn"
-              >
-                <Download size={17} />
-                Download PDF
-              </button>
-              <button
-                onClick={onClose}
-                className="w-full py-3 rounded-xl border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors"
-                data-testid="close-preview-bottom-btn"
-              >
-                Tutup
-              </button>
-            </div>
+            {/* Download — <a download> tidak bisa diblokir ekstensi */}
+            <a
+              href={blobUrl}
+              download={namaFile}
+              className="w-full mb-3 py-3.5 rounded-xl bg-blue-900 text-white text-sm font-semibold flex items-center justify-center gap-2 hover:bg-blue-800 transition-colors active:scale-98 no-underline"
+              data-testid="download-pdf-btn"
+            >
+              <Download size={17} />
+              Download PDF
+            </a>
+
+            {/* Buka di tab baru — <a target="_blank"> lebih aman dari window.open() */}
+            <a
+              href={blobUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full mb-3 py-3.5 rounded-xl border-2 border-blue-900 text-blue-900 text-sm font-semibold flex items-center justify-center gap-2 hover:bg-blue-50 transition-colors active:scale-98 no-underline"
+              data-testid="view-pdf-btn"
+            >
+              <ExternalLink size={17} />
+              Buka PDF
+            </a>
+
+            <button
+              onClick={onClose}
+              className="w-full py-3 rounded-xl border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors"
+              data-testid="close-preview-bottom-btn"
+            >
+              Tutup
+            </button>
           </div>
         )}
+
       </div>
     </div>
   );
