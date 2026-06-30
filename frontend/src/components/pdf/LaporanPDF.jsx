@@ -294,7 +294,7 @@ const LaporanPDF = ({ monthData, settings }) => {
 
                   const mergeStyleNo = isFirst ? s.cellMergeTop : (isLast ? s.cellMergeCont : s.cellMergeCont);
                   const mergeStyleTgl = isFirst ? s.cellMergeTop : (isLast ? s.cellMergeCont : s.cellMergeCont);
-                  const mergeStyleJab = isFirst ? s.cellLMergeTop : (isLast ? s.cellLMergeCont : s.cellLMergeCont);
+                  const mergeStyleJab = isFirst ? s.cellMergeTop : (isLast ? s.cellMergeCont : s.cellMergeCont);
 
                   // For middle rows (not first, not last), also remove bottom border
                   const noBottom = !isFirst && !isLast;
@@ -320,7 +320,7 @@ const LaporanPDF = ({ monthData, settings }) => {
                       </View>
                       {/* Kegiatan Tugas Jabatan — merge vertikal, hanya sekali */}
                       <View style={[finalStyleJab, { width: COL.KEGIATAN }]}>
-                        <Text style={s.cellTextL}>{isFirst ? (pegawai?.jabatan || '') : ''}</Text>
+                        <Text style={s.cellText}>{isFirst ? (pegawai?.jabatan || '') : ''}</Text>
                       </View>
                       {/* Keterangan — nama kegiatan, tiap baris */}
                       <Cell w={COL.KETERANGAN}>{k.namaKegiatan}</Cell>
@@ -360,7 +360,7 @@ const LaporanPDF = ({ monthData, settings }) => {
           <View style={s.tableRow}>
             <View style={[s.grandTotalCell, { width: '100%' }]}>
               <Text style={s.grandTotalText}>
-                {`Total Jam Kerja Efektif Bulan ${namaBulan} ${tahun} ${grandTotalText}`}
+                {`Total Jam Kerja Efektif Bulan ${namaBulan} ${tahun} : ${grandTotalText}`}
               </Text>
             </View>
           </View>
