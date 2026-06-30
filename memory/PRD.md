@@ -20,9 +20,7 @@ Mobile-first web app for recording daily activities of field employees (e.g., he
 8. Settings: employee, supervisor, optional header (logo/dinas)
 9. No login system
 
-## Implementation Date: 2026-02-xx
-
-## What's Been Implemented (Updated Feb 2026)
+## What's Been Implemented (Updated Jun 2026)
 - [x] App structure (React + Tailwind + @react-pdf/renderer)
 - [x] Bottom navigation (Kegiatan / Pengaturan tabs)
 - [x] BulanPicker with month navigation + confirmation dialog for month switch
@@ -30,11 +28,18 @@ Mobile-first web app for recording daily activities of field employees (e.g., he
 - [x] KegiatanItem (activity input: name + time picker + real-time duration)
 - [x] Validation: format, jam selesai > mulai, min start time (06:00/08:00), no overlap
 - [x] Apel Pagi shortcut button (read-only, always position 1, max 1 per day)
+- [x] **Apel Pagi hidden on Friday/Saturday/Sunday** (new)
+- [x] **Apel Pagi deletable** (removed permanent restriction) (new)
 - [x] Save per day with confirmation dialog + "Belum disimpan" indicator on edit after save
+- [x] **After save: card auto-collapses + button changes to "Kegiatan Tersimpan"** (new)
+- [x] **Warning when saving with only Apel Pagi or no activities** (new)
+- [x] **"Hapus Semua Kegiatan" button per day with confirmation dialog** (new)
+- [x] **"Salin Hari Sebelumnya" button - copies previous day's activities** (new)
 - [x] Total jam bulanan card (shows hours + minutes)
 - [x] Settings page auto-save on blur: Pegawai, Atasan, Header Dokumen
 - [x] Logo upload (base64 in localStorage) in Settings
 - [x] Reset kegiatan with 2-step confirmation (settings NOT affected)
+- [x] **PDF warning panel with "Buka Pengaturan" navigation button** (new)
 - [x] PDF generation (@react-pdf/renderer):
   - Optional header (logo + nama dinas)
   - Pegawai & Atasan header (2-col, no borders, aligned colons)
@@ -49,12 +54,11 @@ Mobile-first web app for recording daily activities of field employees (e.g., he
 
 ## Prioritized Backlog
 - P1: Header table repetition on PDF page 2+ (multi-page months)
-- P1: Weekend indicator more prominent
-- P2: Jabatan abbreviation in PDF Kegiatan Tugas Jabatan column
+- P2: Jabatan abbreviation option in PDF Kegiatan Tugas Jabatan column
 - P3: Export to older browser support
 
 ## Next Tasks
-1. Test PDF generation with real data
-2. Verify all business rules (Apel Pagi ordering, overlap detection)
-3. Test month switching confirmation
+1. PDF multi-page table header repetition
+2. Jabatan lengkap vs singkat toggle in PDF
+3. Test PDF generation with real data
 4. Performance check with 30+ day cards
