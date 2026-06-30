@@ -7,12 +7,12 @@ import {
 
 const MARGIN = 28.35; // 10mm in pt
 
-// Column width percentages
+// Column width percentages — revised per user feedback
 const COL = {
   NO: '4%',
   TANGGAL: '10%',
-  KEGIATAN: '28%',
-  KETERANGAN: '8%',
+  KEGIATAN: '18%',
+  KETERANGAN: '18%',
   KUANTITAS: '9%',
   MULAI: '8%',
   SELESAI: '8%',
@@ -65,8 +65,28 @@ const s = StyleSheet.create({
     borderRightWidth: 1, borderBottomWidth: 1, borderColor: '#000000',
     padding: 2, justifyContent: 'center', alignItems: 'center',
   },
+  // Cell for merged rows — no bottom border on first row
+  cellMergeTop: {
+    borderRightWidth: 1, borderBottomWidth: 0, borderColor: '#000000',
+    padding: 2, justifyContent: 'center', alignItems: 'center',
+  },
+  // Cell for merged rows — no top border on subsequent rows
+  cellMergeCont: {
+    borderRightWidth: 1, borderBottomWidth: 1, borderColor: '#000000',
+    borderTopWidth: 0,
+    padding: 2, justifyContent: 'center', alignItems: 'center',
+  },
   cellL: {
     borderRightWidth: 1, borderBottomWidth: 1, borderColor: '#000000',
+    padding: 2, justifyContent: 'center', alignItems: 'flex-start',
+  },
+  cellLMergeTop: {
+    borderRightWidth: 1, borderBottomWidth: 0, borderColor: '#000000',
+    padding: 2, justifyContent: 'center', alignItems: 'flex-start',
+  },
+  cellLMergeCont: {
+    borderRightWidth: 1, borderBottomWidth: 1, borderColor: '#000000',
+    borderTopWidth: 0,
     padding: 2, justifyContent: 'center', alignItems: 'flex-start',
   },
 
@@ -80,8 +100,9 @@ const s = StyleSheet.create({
   footerRow: { flexDirection: 'row', marginTop: 20 },
   footerLeft: { width: '50%', paddingRight: '25%', alignItems: 'center' },
   footerRight: { width: '50%', paddingLeft: '25%', alignItems: 'center' },
+  footerSpacer: { height: 12 },
   footerLabel: { fontFamily: 'Times-Roman', fontSize: 8, marginBottom: 52 },
-  footerDateText: { fontFamily: 'Times-Roman', fontSize: 8, textAlign: 'center', marginBottom: 4 },
+  footerDateText: { fontFamily: 'Times-Roman', fontSize: 8, textAlign: 'center' },
   footerRightLabel: { fontFamily: 'Times-Roman', fontSize: 8, textAlign: 'center', marginBottom: 52 },
   footerNameUnderline: {
     fontFamily: 'Times-Bold', fontSize: 8, textAlign: 'center',
@@ -94,27 +115,21 @@ const s = StyleSheet.create({
 // ============ TABLE HEADER ============
 const TableHeader = () => (
   <View style={s.tableRow}>
-    {/* No */}
     <View style={[{ width: COL.NO }, s.cell]}>
       <Text style={s.headerText}>No</Text>
     </View>
-    {/* Tanggal */}
     <View style={[{ width: COL.TANGGAL }, s.cell]}>
       <Text style={s.headerText}>Tanggal</Text>
     </View>
-    {/* Kegiatan Tugas Jabatan */}
     <View style={[{ width: COL.KEGIATAN }, s.cell]}>
       <Text style={s.headerText}>Kegiatan Tugas Jabatan</Text>
     </View>
-    {/* Keterangan */}
     <View style={[{ width: COL.KETERANGAN }, s.cell]}>
       <Text style={s.headerText}>Keterangan</Text>
     </View>
-    {/* Kuantitas / Output */}
     <View style={[{ width: COL.KUANTITAS }, s.cell]}>
       <Text style={s.headerText}>Kuantitas / Output</Text>
     </View>
-
     {/* Waktu Pengerjaan — colspan 3 */}
     <View style={{ width: '25%', flexDirection: 'column' }}>
       <View style={{
@@ -135,8 +150,6 @@ const TableHeader = () => (
         </View>
       </View>
     </View>
-
-    {/* Paraf Verifikasi */}
     <View style={[{ width: COL.PARAF }, s.cell]}>
       <Text style={s.headerText}>Paraf Verifikasi</Text>
     </View>
@@ -153,15 +166,7 @@ const Cell = ({ w, bold, left, children }) => (
   </View>
 );
 
-// Kegiatan Tugas Jabatan cell — HANYA berisi jabatan pegawai
-const JabatanCell = ({ jabatan }) => (
-  <View style={[s.cellL, { width: COL.KEGIATAN }]}>
-    <Text style={s.cellTextL}>{jabatan}</Text>
-  </View>
-);
-
 // ============ DATE FORMATTER ============
-// Convert "YYYY-MM-DD" → "DD/MM/YYYY"
 const formatDateSlashed = (dateStr) => {
   if (!dateStr) return '';
   const parts = dateStr.split('-');
@@ -179,10 +184,8 @@ const LaporanPDF = ({ monthData, settings }) => {
   const kota = headerDokumen?.kota || '';
   const showHeader = !!(headerDokumen?.logoBase64 || headerDokumen?.namaDinas);
 
-  // Only saved days with filled kegiatan
   const savedDays = hari.filter(d => d.disimpan && d.kegiatan?.some(k => k.namaKegiatan?.trim()));
 
-  // Grand total
   const grandTotalMenit = savedDays.reduce((sum, d) => sum + (d.totalMenitHari || 0), 0);
   const grandTotalJam = Math.floor(grandTotalMenit / 60);
   const grandTotalSisa = grandTotalMenit % 60;
@@ -276,17 +279,45 @@ const LaporanPDF = ({ monthData, settings }) => {
                   const mulaiStr = k.jamMulai ? k.jamMulai + ':00' : '—';
                   const selesaiStr = k.jamSelesai ? k.jamSelesai + ':00' : '—';
 
-                  const isFirstRow = kIdx === 0;
+                  const isFirst = kIdx === 0;
+                  const isLast = kIdx === filled.length - 1;
+
+                  // Merge logic for No, Tanggal, Jabatan columns:
+                  // First row: show content, no bottom border
+                  // Middle rows: empty, no top border, no bottom border (if not last)
+                  // Last row: empty, no top border, with bottom border (or regular if only 1 row)
+
+                  const mergeStyleNo = isFirst ? s.cellMergeTop : (isLast ? s.cellMergeCont : s.cellMergeCont);
+                  const mergeStyleTgl = isFirst ? s.cellMergeTop : (isLast ? s.cellMergeCont : s.cellMergeCont);
+                  const mergeStyleJab = isFirst ? s.cellLMergeTop : (isLast ? s.cellLMergeCont : s.cellLMergeCont);
+
+                  // For middle rows (not first, not last), also remove bottom border
+                  const noBottom = !isFirst && !isLast;
+                  const finalStyleNo = noBottom
+                    ? { ...mergeStyleNo, borderBottomWidth: 0 }
+                    : mergeStyleNo;
+                  const finalStyleTgl = noBottom
+                    ? { ...mergeStyleTgl, borderBottomWidth: 0 }
+                    : mergeStyleTgl;
+                  const finalStyleJab = noBottom
+                    ? { ...mergeStyleJab, borderBottomWidth: 0 }
+                    : mergeStyleJab;
 
                   return (
                     <View key={k.id} style={s.tableRow} wrap={false}>
-                      {/* No — hanya di baris pertama, sel kosong di baris berikutnya */}
-                      <Cell w={COL.NO}>{isFirstRow ? String(dayIdx + 1) : ''}</Cell>
-                      {/* Tanggal — hanya di baris pertama */}
-                      <Cell w={COL.TANGGAL}>{isFirstRow ? tanggalFormatted : ''}</Cell>
-                      {/* Kegiatan Tugas Jabatan — HANYA jabatan pegawai */}
-                      <JabatanCell jabatan={pegawai?.jabatan || ''} />
-                      {/* Keterangan — berisi nama kegiatan dari input */}
+                      {/* No — merge vertikal */}
+                      <View style={[finalStyleNo, { width: COL.NO }]}>
+                        <Text style={s.cellText}>{isFirst ? String(dayIdx + 1) : ''}</Text>
+                      </View>
+                      {/* Tanggal — merge vertikal */}
+                      <View style={[finalStyleTgl, { width: COL.TANGGAL }]}>
+                        <Text style={s.cellText}>{isFirst ? tanggalFormatted : ''}</Text>
+                      </View>
+                      {/* Kegiatan Tugas Jabatan — merge vertikal, hanya sekali */}
+                      <View style={[finalStyleJab, { width: COL.KEGIATAN }]}>
+                        <Text style={s.cellTextL}>{isFirst ? (pegawai?.jabatan || '') : ''}</Text>
+                      </View>
+                      {/* Keterangan — nama kegiatan, tiap baris */}
                       <Cell w={COL.KETERANGAN}>{k.namaKegiatan}</Cell>
                       <Cell w={COL.KUANTITAS}>1 Keg</Cell>
                       <Cell w={COL.MULAI}>{mulaiStr}</Cell>
@@ -305,6 +336,7 @@ const LaporanPDF = ({ monthData, settings }) => {
                   <View style={[s.cell, { width: COL.TANGGAL }]}>
                     <Text style={s.cellText}></Text>
                   </View>
+                  {/* Total colspan: KEGIATAN + KETERANGAN + KUANTITAS + MULAI + SELESAI + LAMA = 70% */}
                   <View style={[s.cell, {
                     width: '70%',
                     justifyContent: 'center', alignItems: 'center',
@@ -336,6 +368,8 @@ const LaporanPDF = ({ monthData, settings }) => {
         <View style={s.footerRow} wrap={false}>
           {/* Kolom Kiri: Pejabat Penilai — posisi ~25% */}
           <View style={s.footerLeft}>
+            {/* Spacer agar sejajar dengan tanggal + Pegawai Yang Membuat di kanan */}
+            <View style={s.footerSpacer} />
             <Text style={s.footerLabel}>Pejabat Penilai,</Text>
             <Text style={s.footerNameUnderline}>{atasan?.nama || ''}</Text>
             <Text style={s.footerNIP}>NIP {atasan?.nip || ''}</Text>
