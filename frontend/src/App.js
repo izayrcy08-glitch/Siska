@@ -10,7 +10,7 @@ function App() {
   return (
     <div className="min-h-screen bg-gray-100">
       <div className="max-w-md mx-auto min-h-screen bg-gray-50 pb-20 relative shadow-sm">
-        {activeTab === 'kegiatan' ? <KegiatanPage /> : <PengaturanPage />}
+        {activeTab === 'kegiatan' ? <KegiatanPage onGoToSettings={() => setActiveTab('pengaturan')} /> : <PengaturanPage />}
       </div>
       <div className="max-w-md mx-auto">
         <BottomNav activeTab={activeTab} onTabChange={setActiveTab} />

@@ -16,7 +16,7 @@ function loadSettings() {
   try { return JSON.parse(localStorage.getItem('settings')) || null; } catch { return null; }
 }
 
-const KegiatanPage = () => {
+const KegiatanPage = ({ onGoToSettings }) => {
   const today = new Date();
   const [activeMonth, setActiveMonth] = useState({
     bulan: today.getMonth() + 1,
@@ -107,14 +107,18 @@ const KegiatanPage = () => {
       />
 
       <div className="px-3 pt-3">
-        {monthData?.hari?.map(dayData => (
-          <DayCard
-            key={dayData.tanggal}
-            dayData={dayData}
-            storageKey={storageKey}
-            onSaveDay={handleSaveDay}
-          />
-        ))}
+        {monthData?.hari?.map((dayData, idx) => {
+          const prevDayKegiatan = idx > 0 ? (monthData.hari[idx - 1].kegiatan || null) : null;
+          return (
+            <DayCard
+              key={dayData.tanggal}
+              dayData={dayData}
+              storageKey={storageKey}
+              onSaveDay={handleSaveDay}
+              prevDayKegiatan={prevDayKegiatan}
+            />
+          );
+        })}
       </div>
 
       <TotalBulanan
@@ -123,6 +127,7 @@ const KegiatanPage = () => {
         totalMenitBulan={totalMenitBulan}
         isPDFReady={isPDFReady}
         onPreviewPDF={handleOpenPreview}
+        onGoToSettings={onGoToSettings}
       />
 
       {/* Month Change Confirmation */}

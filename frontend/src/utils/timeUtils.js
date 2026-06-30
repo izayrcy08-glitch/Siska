@@ -75,6 +75,12 @@ export function isWeekend(dateStr) {
   return d === 0 || d === 6;
 }
 
+// Hari Jumat (5), Sabtu (6), Minggu (0) — tidak ada Apel Pagi
+export function isNoApelPagiDay(dateStr) {
+  const d = getDayOfWeek(dateStr);
+  return d === 0 || d === 5 || d === 6;
+}
+
 export function getDayName(dateStr) {
   return HARI_NAMA[getDayOfWeek(dateStr)];
 }

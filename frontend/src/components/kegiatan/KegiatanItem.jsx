@@ -72,18 +72,16 @@ const KegiatanItem = ({ kegiatan, errors = {}, onUpdate, onDelete }) => {
         </div>
       </div>
 
-      {!isApelPagi && (
-        <div className="flex justify-end mt-2">
-          <button
-            onClick={onDelete}
-            className="flex items-center gap-1 text-xs text-red-400 hover:text-red-600 px-2 py-1 rounded hover:bg-red-50 transition-colors"
-            data-testid={`delete-activity-btn-${id}`}
-          >
-            <Trash2 size={14} />
-            Hapus
-          </button>
-        </div>
-      )}
+      <div className="flex justify-end mt-2">
+        <button
+          onClick={onDelete}
+          className="flex items-center gap-1 text-xs text-red-400 hover:text-red-600 px-2 py-1 rounded hover:bg-red-50 transition-colors"
+          data-testid={`delete-activity-btn-${id}`}
+        >
+          <Trash2 size={14} />
+          Hapus
+        </button>
+      </div>
     </div>
   );
 };
