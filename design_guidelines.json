@@ -1,0 +1,105 @@
+{
+  "theme": "Light",
+  "archetype": "1 (Organic & Earthy / Utility Blend)",
+  "design_philosophy": "Mobile-first utility app for government field workers. Focus on large tap targets (minimum 48px), high contrast for outdoor visibility, and frictionless data entry via inline-expansion day cards. Neutral and calm palette with strong Navy Blue and Dark Green accents for interactive elements. Clean, modern sans-serif typography.",
+  "colors": {
+    "background": "#F9FAFB",
+    "surface": "#FFFFFF",
+    "primary": "#1E3A8A",
+    "primary_hover": "#1E40AF",
+    "secondary": "#0F766E",
+    "secondary_hover": "#115E59",
+    "text_primary": "#111827",
+    "text_secondary": "#4B5563",
+    "border": "#E5E7EB",
+    "danger": "#DC2626",
+    "danger_hover": "#B91C1C",
+    "pdf_black": "#000000",
+    "pdf_white": "#FFFFFF"
+  },
+  "typography": {
+    "heading_font": "Manrope, sans-serif",
+    "body_font": "Figtree, sans-serif",
+    "sizes": {
+      "h1": "text-2xl sm:text-3xl font-bold tracking-tight",
+      "h2": "text-xl sm:text-2xl font-semibold tracking-tight",
+      "h3": "text-lg sm:text-xl font-medium",
+      "body": "text-base leading-relaxed",
+      "small": "text-sm",
+      "tiny_label": "text-xs tracking-wider uppercase font-semibold text-gray-500"
+    }
+  },
+  "spacing_and_layout": {
+    "main_container": "max-w-md mx-auto min-h-screen bg-gray-50 pb-24 shadow-sm",
+    "card": "bg-white rounded-2xl shadow-sm border border-gray-200 p-4 sm:p-5 mb-4",
+    "card_inline": "bg-gray-50 rounded-xl border border-gray-100 p-3 mb-3",
+    "input_field": "w-full min-h-[48px] rounded-xl border-gray-300 bg-white px-4 py-3 text-base focus:ring-2 focus:ring-blue-900 focus:border-transparent transition-all",
+    "button_primary": "w-full h-14 bg-blue-900 text-white rounded-xl text-lg font-semibold hover:bg-blue-800 transition-colors flex items-center justify-center gap-2",
+    "button_secondary": "w-full h-12 bg-teal-700 text-white rounded-xl text-base font-medium hover:bg-teal-800 transition-colors flex items-center justify-center gap-2",
+    "button_danger": "h-12 px-4 bg-red-50 text-red-600 rounded-xl text-sm font-medium hover:bg-red-100 transition-colors flex items-center justify-center",
+    "bottom_nav": "fixed bottom-0 left-0 right-0 h-16 bg-white border-t border-gray-200 flex justify-around items-center max-w-md mx-auto z-50 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]",
+    "bottom_nav_item": "flex flex-col items-center justify-center w-full h-full space-y-1 text-gray-500 hover:text-blue-900 active:text-blue-900",
+    "bottom_nav_item_active": "text-blue-900 font-semibold"
+  },
+  "components": {
+    "day_card": {
+      "type": "Accordion-style expansion (Inline Expansion vs Modals)",
+      "description": "Each day is a card. When tapped, it expands to show the day's activities. Prevents overwhelming the user with a massive scrollable list. Header shows Date and Total Hours.",
+      "action": "Inside the expanded card: 'Add Activity' button, list of inputs (Name, Start Time, End Time), 'Save Day' button."
+    },
+    "activity_item": {
+      "type": "Form Group",
+      "description": "Grid layout for an activity: Row 1 = Activity Name (text input). Row 2 = Start Time (time input), End Time (time input). Row 3 = Auto-calculated duration text and Trash icon to delete.",
+      "inputs": "Native HTML5 type='time' for mobile optimization."
+    },
+    "month_picker": {
+      "type": "Header Component",
+      "description": "Sticky top header with Left/Right arrows to change the month. Displays current Month and Year."
+    },
+    "bottom_navigation": {
+      "type": "Fixed Nav",
+      "items": [
+        {"icon": "ListTodo", "label": "Kegiatan", "target": "home"},
+        {"icon": "FileText", "label": "Preview PDF", "target": "pdf_modal"},
+        {"icon": "Settings", "label": "Pengaturan", "target": "settings"}
+      ]
+    },
+    "pdf_generator": {
+      "type": "@react-pdf/renderer",
+      "rules": "Strictly Black and White. Formal Indonesian government layout. Header with Logo, Dinas Name, City. Table of activities. Signature block at the bottom for Employee and Supervisor."
+    }
+  },
+  "motion_and_interactions": {
+    "hover_states": "Buttons subtly change color. Cards have no hover lift on mobile, but rely on active/tap states (scale-95 on tap).",
+    "transitions": "Accordion expansion uses smooth height transition. Modals slide up from bottom (Bottom Sheet style for mobile).",
+    "feedback": "Toast notifications for 'Data Saved Successfully'."
+  },
+  "icons": {
+    "library": "lucide-react",
+    "usage": "Use 24px icons for bottom nav, 20px for inline buttons."
+  },
+  "media": {
+    "images": [
+      {
+        "category": "government_placeholder_logo",
+        "url": "https://images.pexels.com/photos/19389365/pexels-photo-19389365.jpeg",
+        "description": "Placeholder for government building or document header logo if user hasn't uploaded one."
+      }
+    ]
+  },
+  "testing_attributes": {
+    "instructions": "All interactive elements must have a data-testid attribute in kebab-case representing its role. Examples: data-testid='add-activity-btn', data-testid='save-day-btn'."
+  },
+  "instructions_to_main_agent": [
+    "Build as a pure frontend React app using Tailwind CSS.",
+    "Install and use lucide-react for icons.",
+    "Install and use @react-pdf/renderer for PDF generation.",
+    "Use date-fns for easy date manipulation (month generation, days in month).",
+    "Implement localStorage hooks to save activities per day and settings data.",
+    "Main layout should be a mobile simulation on desktop (max-w-md mx-auto).",
+    "Day Cards must use Accordion-style inline expansion to keep the UI clean.",
+    "Input fields must have min-height of 48px for touch targets.",
+    "Settings page includes forms for Employee (Nama, NIP, Jabatan) and Supervisor, plus Document Header details.",
+    "PDF Output must be B&W, strict formal layout."
+  ]
+}
