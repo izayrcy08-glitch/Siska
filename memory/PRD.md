@@ -49,7 +49,7 @@ Mobile-first web app for recording daily activities of field employees (e.g., he
   - Monthly total row (100% colspan, bold)
   - Footer signature (3-col: Pejabat Penilai | date | Pegawai Yang Membuat)
   - Filename: Laporan_Kegiatan_NAMA_BulanTahun.pdf
-- [x] PDF Preview modal (PDFViewer + blob URL download button)
+- [x] PDF Preview modal — generate blob URL, tombol "Buka PDF di Tab Baru" + "Download PDF" (tidak pakai iframe, aman dari Chrome CSP blocking)
 - [x] Only saved days (disimpan=true) appear in PDF
 
 ## Prioritized Backlog
