@@ -95,15 +95,20 @@ const s = StyleSheet.create({
   cellTextL: { fontFamily: 'Times-Roman', fontSize: 7, textAlign: 'left' },
   boldCell: { fontFamily: 'Times-Bold', fontSize: 7, textAlign: 'center' },
   headerText: { fontFamily: 'Times-Bold', fontSize: 7, textAlign: 'center' },
+  grandTotalCell: {
+    justifyContent: 'center', alignItems: 'center',
+    backgroundColor: '#F3F4F6',
+    borderRightWidth: 1, borderBottomWidth: 1, borderColor: '#000000',
+    padding: 4,
+  },
+  grandTotalText: { fontFamily: 'Times-Bold', fontSize: 9, textAlign: 'center' },
 
   // === FOOTER ===
   footerRow: { flexDirection: 'row', marginTop: 20 },
   footerLeft: { width: '50%', paddingRight: '25%', alignItems: 'center' },
   footerRight: { width: '50%', paddingLeft: '25%', alignItems: 'center' },
-  footerSpacer: { height: 12 },
-  footerLabel: { fontFamily: 'Times-Roman', fontSize: 8, marginBottom: 52 },
+  footerLabel: { fontFamily: 'Times-Roman', fontSize: 8, textAlign: 'center', marginBottom: 52 },
   footerDateText: { fontFamily: 'Times-Roman', fontSize: 8, textAlign: 'center' },
-  footerRightLabel: { fontFamily: 'Times-Roman', fontSize: 8, textAlign: 'center', marginBottom: 52 },
   footerNameUnderline: {
     fontFamily: 'Times-Bold', fontSize: 8, textAlign: 'center',
     borderBottomWidth: 1, borderColor: '#000000', paddingBottom: 2,
@@ -266,8 +271,8 @@ const LaporanPDF = ({ monthData, settings }) => {
             const totalJamHari = Math.floor(totalMenitHari / 60);
             const totalMenitSisa = totalMenitHari % 60;
             const totalText = totalMenitSisa === 0
-              ? `Total Jam Kerja Efektif ${totalJamHari} Jam`
-              : `Total Jam Kerja Efektif ${totalJamHari} Jam ${totalMenitSisa} Menit`;
+              ? `Subtotal: ${totalJamHari} Jam`
+              : `Subtotal: ${totalJamHari} Jam ${totalMenitSisa} Menit`;
 
             const tanggalFormatted = formatDateSlashed(day.tanggal);
 
@@ -353,11 +358,8 @@ const LaporanPDF = ({ monthData, settings }) => {
 
           {/* Total Bulanan — colspan semua 9 kolom */}
           <View style={s.tableRow}>
-            <View style={[s.cell, {
-              width: '100%',
-              justifyContent: 'center', alignItems: 'center',
-            }]}>
-              <Text style={[s.boldCell, { fontSize: 7 }]}>
+            <View style={[s.grandTotalCell, { width: '100%' }]}>
+              <Text style={s.grandTotalText}>
                 {`Total Jam Kerja Efektif Bulan ${namaBulan} ${tahun} ${grandTotalText}`}
               </Text>
             </View>
@@ -368,11 +370,11 @@ const LaporanPDF = ({ monthData, settings }) => {
         <View style={s.footerRow} wrap={false}>
           {/* Kolom Kiri: Pejabat Penilai — posisi ~25% */}
           <View style={s.footerLeft}>
-            {/* Spacer agar sejajar dengan tanggal + Pegawai Yang Membuat di kanan */}
-            <View style={s.footerSpacer} />
+            {/* Placeholder teks transparan agar tinggi sejajar dengan tanggal di kanan */}
+            <Text style={[s.footerDateText, { color: '#FFFFFF' }]}>.</Text>
             <Text style={s.footerLabel}>Pejabat Penilai,</Text>
             <Text style={s.footerNameUnderline}>{atasan?.nama || ''}</Text>
-            <Text style={s.footerNIP}>NIP {atasan?.nip || ''}</Text>
+            <Text style={s.footerNIP}>NIP. {atasan?.nip || ''}</Text>
           </View>
 
           {/* Kolom Kanan: Tanggal + Pegawai — posisi ~75% */}
@@ -380,7 +382,7 @@ const LaporanPDF = ({ monthData, settings }) => {
             <Text style={s.footerDateText}>
               {kota ? `${kota}, ${footerDate}` : footerDate}
             </Text>
-            <Text style={s.footerRightLabel}>Pegawai Yang Membuat,</Text>
+            <Text style={s.footerLabel}>Pegawai Yang Membuat,</Text>
             <Text style={s.footerNameUnderline}>{pegawai?.nama || ''}</Text>
             <Text style={s.footerNIP}>NIP. {pegawai?.nip || ''}</Text>
           </View>
