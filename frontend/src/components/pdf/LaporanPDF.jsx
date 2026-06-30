@@ -77,53 +77,52 @@ const s = StyleSheet.create({
   headerText: { fontFamily: 'Times-Bold', fontSize: 7, textAlign: 'center' },
 
   // === FOOTER ===
-  footerRow: { flexDirection: 'row', marginTop: 16 },
-  footerLeft: { width: '50%', paddingRight: '25%' },
-  footerRight: { width: '50%', paddingLeft: '25%' },
-  footerLabel: { fontFamily: 'Times-Roman', fontSize: 8, marginBottom: 48 },
-  footerNameWrap: {
+  footerRow: { flexDirection: 'row', marginTop: 20 },
+  footerLeft: { width: '50%', paddingRight: '25%', alignItems: 'center' },
+  footerRight: { width: '50%', paddingLeft: '25%', alignItems: 'center' },
+  footerLabel: { fontFamily: 'Times-Roman', fontSize: 8, marginBottom: 52 },
+  footerDateText: { fontFamily: 'Times-Roman', fontSize: 8, textAlign: 'center', marginBottom: 4 },
+  footerRightLabel: { fontFamily: 'Times-Roman', fontSize: 8, textAlign: 'center', marginBottom: 52 },
+  footerNameUnderline: {
     fontFamily: 'Times-Bold', fontSize: 8, textAlign: 'center',
     borderBottomWidth: 1, borderColor: '#000000', paddingBottom: 2,
+    alignSelf: 'center',
   },
   footerNIP: { fontFamily: 'Times-Roman', fontSize: 8, textAlign: 'center', marginTop: 4 },
-  footerDateText: { fontFamily: 'Times-Roman', fontSize: 8, textAlign: 'center' },
-  footerRightLabel: { fontFamily: 'Times-Roman', fontSize: 8, textAlign: 'center', marginTop: 4 },
 });
 
 // ============ TABLE HEADER ============
 const TableHeader = () => (
   <View style={s.tableRow}>
-    {/* No — rowSpan 2 */}
+    {/* No */}
     <View style={[{ width: COL.NO }, s.cell]}>
       <Text style={s.headerText}>No</Text>
     </View>
-    {/* Tanggal — rowSpan 2 */}
+    {/* Tanggal */}
     <View style={[{ width: COL.TANGGAL }, s.cell]}>
       <Text style={s.headerText}>Tanggal</Text>
     </View>
-    {/* Kegiatan Tugas Jabatan — rowSpan 2 */}
+    {/* Kegiatan Tugas Jabatan */}
     <View style={[{ width: COL.KEGIATAN }, s.cell]}>
       <Text style={s.headerText}>Kegiatan Tugas Jabatan</Text>
     </View>
-    {/* Keterangan — rowSpan 2 */}
+    {/* Keterangan */}
     <View style={[{ width: COL.KETERANGAN }, s.cell]}>
       <Text style={s.headerText}>Keterangan</Text>
     </View>
-    {/* Kuantitas / Output — rowSpan 2 */}
+    {/* Kuantitas / Output */}
     <View style={[{ width: COL.KUANTITAS }, s.cell]}>
       <Text style={s.headerText}>Kuantitas / Output</Text>
     </View>
 
     {/* Waktu Pengerjaan — colspan 3 */}
     <View style={{ width: '25%', flexDirection: 'column' }}>
-      {/* Title row */}
       <View style={{
         borderRightWidth: 1, borderBottomWidth: 1, borderColor: '#000000',
         alignItems: 'center', justifyContent: 'center', padding: 2,
       }}>
         <Text style={s.headerText}>Waktu Pengerjaan</Text>
       </View>
-      {/* Sub-columns */}
       <View style={{ flexDirection: 'row' }}>
         <View style={[s.cell, { width: '32%', borderTopWidth: 0 }]}>
           <Text style={s.headerText}>Mulai</Text>
@@ -137,7 +136,7 @@ const TableHeader = () => (
       </View>
     </View>
 
-    {/* Paraf Verifikasi — rowSpan 2 */}
+    {/* Paraf Verifikasi */}
     <View style={[{ width: COL.PARAF }, s.cell]}>
       <Text style={s.headerText}>Paraf Verifikasi</Text>
     </View>
@@ -154,21 +153,20 @@ const Cell = ({ w, bold, left, children }) => (
   </View>
 );
 
-// Kegiatan cell with 2 text lines: jabatan + nama kegiatan
-const KegiatanCell = ({ jabatan, namaKegiatan }) => (
+// Kegiatan Tugas Jabatan cell — HANYA berisi jabatan pegawai
+const JabatanCell = ({ jabatan }) => (
   <View style={[s.cellL, { width: COL.KEGIATAN }]}>
     <Text style={s.cellTextL}>{jabatan}</Text>
-    <Text style={s.cellTextL}>{namaKegiatan}</Text>
   </View>
 );
 
 // ============ DATE FORMATTER ============
-// Convert "YYYY-MM-DD" → "DDMMYYYY"
-const formatDateDDMMYYYY = (dateStr) => {
+// Convert "YYYY-MM-DD" → "DD/MM/YYYY"
+const formatDateSlashed = (dateStr) => {
   if (!dateStr) return '';
   const parts = dateStr.split('-');
   if (parts.length !== 3) return dateStr;
-  return `${parts[2]}${parts[1]}${parts[0]}`;
+  return `${parts[2]}/${parts[1]}/${parts[0]}`;
 };
 
 // ============ MAIN COMPONENT ============
@@ -268,7 +266,7 @@ const LaporanPDF = ({ monthData, settings }) => {
               ? `Total Jam Kerja Efektif ${totalJamHari} Jam`
               : `Total Jam Kerja Efektif ${totalJamHari} Jam ${totalMenitSisa} Menit`;
 
-            const tanggalFormatted = formatDateDDMMYYYY(day.tanggal);
+            const tanggalFormatted = formatDateSlashed(day.tanggal);
 
             return (
               <React.Fragment key={day.tanggal}>
@@ -286,12 +284,10 @@ const LaporanPDF = ({ monthData, settings }) => {
                       <Cell w={COL.NO}>{isFirstRow ? String(dayIdx + 1) : ''}</Cell>
                       {/* Tanggal — hanya di baris pertama */}
                       <Cell w={COL.TANGGAL}>{isFirstRow ? tanggalFormatted : ''}</Cell>
-                      {/* Kegiatan — jabatan penuh + nama kegiatan */}
-                      <KegiatanCell
-                        jabatan={pegawai?.jabatan || ''}
-                        namaKegiatan={k.namaKegiatan}
-                      />
-                      <Cell w={COL.KETERANGAN}>Selesai</Cell>
+                      {/* Kegiatan Tugas Jabatan — HANYA jabatan pegawai */}
+                      <JabatanCell jabatan={pegawai?.jabatan || ''} />
+                      {/* Keterangan — berisi nama kegiatan dari input */}
+                      <Cell w={COL.KETERANGAN}>{k.namaKegiatan}</Cell>
                       <Cell w={COL.KUANTITAS}>1 Keg</Cell>
                       <Cell w={COL.MULAI}>{mulaiStr}</Cell>
                       <Cell w={COL.SELESAI}>{selesaiStr}</Cell>
@@ -303,20 +299,19 @@ const LaporanPDF = ({ monthData, settings }) => {
 
                 {/* Total harian — colspan 7 kolom (Kegiatan s/d Lama) */}
                 <View style={s.tableRow} wrap={false}>
-                  <View style={[s.cell, { width: COL.NO, borderRightWidth: 1, borderBottomWidth: 1, borderColor: '#000000' }]}>
+                  <View style={[s.cell, { width: COL.NO }]}>
                     <Text style={s.cellText}></Text>
                   </View>
-                  <View style={[s.cell, { width: COL.TANGGAL, borderRightWidth: 1, borderBottomWidth: 1, borderColor: '#000000' }]}>
+                  <View style={[s.cell, { width: COL.TANGGAL }]}>
                     <Text style={s.cellText}></Text>
                   </View>
                   <View style={[s.cell, {
                     width: '70%',
-                    borderRightWidth: 1, borderBottomWidth: 1, borderColor: '#000000',
                     justifyContent: 'center', alignItems: 'center',
                   }]}>
                     <Text style={s.boldCell}>{totalText}</Text>
                   </View>
-                  <View style={[s.cell, { width: COL.PARAF, borderRightWidth: 1, borderBottomWidth: 1, borderColor: '#000000' }]}>
+                  <View style={[s.cell, { width: COL.PARAF }]}>
                     <Text style={s.cellText}></Text>
                   </View>
                 </View>
@@ -342,12 +337,8 @@ const LaporanPDF = ({ monthData, settings }) => {
           {/* Kolom Kiri: Pejabat Penilai — posisi ~25% */}
           <View style={s.footerLeft}>
             <Text style={s.footerLabel}>Pejabat Penilai,</Text>
-            <View style={{ alignItems: 'center' }}>
-              <View style={{ width: '100%', marginBottom: 4 }}>
-                <Text style={s.footerNameWrap}>{atasan?.nama || ''}</Text>
-              </View>
-              <Text style={s.footerNIP}>NIP {atasan?.nip || ''}</Text>
-            </View>
+            <Text style={s.footerNameUnderline}>{atasan?.nama || ''}</Text>
+            <Text style={s.footerNIP}>NIP {atasan?.nip || ''}</Text>
           </View>
 
           {/* Kolom Kanan: Tanggal + Pegawai — posisi ~75% */}
@@ -356,12 +347,8 @@ const LaporanPDF = ({ monthData, settings }) => {
               {kota ? `${kota}, ${footerDate}` : footerDate}
             </Text>
             <Text style={s.footerRightLabel}>Pegawai Yang Membuat,</Text>
-            <View style={{ alignItems: 'center' }}>
-              <View style={{ width: '100%', marginBottom: 4 }}>
-                <Text style={s.footerNameWrap}>{pegawai?.nama || ''}</Text>
-              </View>
-              <Text style={s.footerNIP}>NIP. {pegawai?.nip || ''}</Text>
-            </View>
+            <Text style={s.footerNameUnderline}>{pegawai?.nama || ''}</Text>
+            <Text style={s.footerNIP}>NIP. {pegawai?.nip || ''}</Text>
           </View>
         </View>
       </Page>
