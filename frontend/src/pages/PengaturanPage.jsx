@@ -82,7 +82,7 @@ const PengaturanPage = () => {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Batal</AlertDialogCancel>
-            <AlertDialogAction onClick={handleConfirm1} className="bg-red-600 hover:bg-red-700">
+            <AlertDialogAction onClick={handleConfirm1} className="bg-red-600 hover:bg-red-700" data-testid="confirm-reset-step1-btn">
               Lanjutkan
             </AlertDialogAction>
           </AlertDialogFooter>

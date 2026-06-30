@@ -22,28 +22,30 @@ Mobile-first web app for recording daily activities of field employees (e.g., he
 
 ## Implementation Date: 2026-02-xx
 
-## What's Been Implemented
-- [x] App structure (React + Tailwind)
+## What's Been Implemented (Updated Feb 2026)
+- [x] App structure (React + Tailwind + @react-pdf/renderer)
 - [x] Bottom navigation (Kegiatan / Pengaturan tabs)
-- [x] BulanPicker with month navigation
-- [x] DayCard accordion (expand/collapse per day)
-- [x] KegiatanItem (activity input form with time picker + duration)
-- [x] Validation: format, jam selesai > mulai, min start time, overlap
-- [x] Apel Pagi shortcut button (read-only, always top position)
-- [x] Save per day with confirmation dialog
-- [x] Unsaved changes indicator
-- [x] TotalBulanan with PDF trigger button
-- [x] Settings page (auto-save on blur): Pegawai, Atasan, Header Dokumen
-- [x] Logo upload (base64 in localStorage)
-- [x] Reset kegiatan (2-step confirmation)
-- [x] PDF generation (@react-pdf/renderer)
-  - Header dokumen (optional logo/dinas)
-  - Header pegawai & atasan (2-col, no borders)
-  - Main table with 2-row merged header (Waktu Pengerjaan colspan)
-  - Daily total rows (70% colspan)
-  - Monthly total row (100% colspan)
+- [x] BulanPicker with month navigation + confirmation dialog for month switch
+- [x] DayCard accordion (expand/collapse, weekend badge, saved status)
+- [x] KegiatanItem (activity input: name + time picker + real-time duration)
+- [x] Validation: format, jam selesai > mulai, min start time (06:00/08:00), no overlap
+- [x] Apel Pagi shortcut button (read-only, always position 1, max 1 per day)
+- [x] Save per day with confirmation dialog + "Belum disimpan" indicator on edit after save
+- [x] Total jam bulanan card (shows hours + minutes)
+- [x] Settings page auto-save on blur: Pegawai, Atasan, Header Dokumen
+- [x] Logo upload (base64 in localStorage) in Settings
+- [x] Reset kegiatan with 2-step confirmation (settings NOT affected)
+- [x] PDF generation (@react-pdf/renderer):
+  - Optional header (logo + nama dinas)
+  - Pegawai & Atasan header (2-col, no borders, aligned colons)
+  - Table: 2-row merged header (Waktu Pengerjaan colspan 3)
+  - Data rows: No/Tanggal only on first activity per day
+  - Daily total rows (70% colspan): "Total Jam Kerja Efektif X Jam Y Menit"
+  - Monthly total row (100% colspan, bold)
   - Footer signature (3-col: Pejabat Penilai | date | Pegawai Yang Membuat)
-- [x] PDF Preview modal (PDFViewer + Download button)
+  - Filename: Laporan_Kegiatan_NAMA_BulanTahun.pdf
+- [x] PDF Preview modal (PDFViewer + blob URL download button)
+- [x] Only saved days (disimpan=true) appear in PDF
 
 ## Prioritized Backlog
 - P1: Header table repetition on PDF page 2+ (multi-page months)
