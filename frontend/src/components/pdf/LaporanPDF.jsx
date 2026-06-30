@@ -7,6 +7,19 @@ import {
 
 const MARGIN = 28.35; // 10mm in pt
 
+// Column width percentages
+const COL = {
+  NO: '4%',
+  TANGGAL: '10%',
+  KEGIATAN: '28%',
+  KETERANGAN: '8%',
+  KUANTITAS: '9%',
+  MULAI: '8%',
+  SELESAI: '8%',
+  LAMA: '9%',
+  PARAF: '16%',
+};
+
 const s = StyleSheet.create({
   page: {
     fontFamily: 'Times-Roman',
@@ -18,7 +31,7 @@ const s = StyleSheet.create({
     paddingLeft: MARGIN,
     paddingRight: MARGIN,
   },
-  // Optional logo/dinas header
+  // === SECTION 1: Optional header (logo + dinas) ===
   logoSection: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -31,7 +44,7 @@ const s = StyleSheet.create({
   namaInstansi: {
     fontFamily: 'Times-Bold', fontSize: 11, flex: 1, textAlign: 'center',
   },
-  // Pegawai / Atasan header
+  // === SECTION 2: Pegawai / Atasan header ===
   headerSection: { flexDirection: 'row', marginBottom: 8 },
   headerCol: { width: '50%', paddingRight: 10 },
   headerColR: { width: '50%', paddingLeft: 4 },
@@ -40,12 +53,14 @@ const s = StyleSheet.create({
   hLabel: { fontFamily: 'Times-Roman', fontSize: 8, width: 44 },
   hColon: { fontFamily: 'Times-Roman', fontSize: 8, width: 8 },
   hValue: { fontFamily: 'Times-Roman', fontSize: 8, flex: 1 },
-  // Table
+
+  // === TABLE ===
   table: {
     borderTopWidth: 1, borderLeftWidth: 1, borderColor: '#000000',
   },
   tableRow: { flexDirection: 'row' },
-  // Generic cell (center text)
+
+  // Cell base
   cell: {
     borderRightWidth: 1, borderBottomWidth: 1, borderColor: '#000000',
     padding: 2, justifyContent: 'center', alignItems: 'center',
@@ -54,31 +69,84 @@ const s = StyleSheet.create({
     borderRightWidth: 1, borderBottomWidth: 1, borderColor: '#000000',
     padding: 2, justifyContent: 'center', alignItems: 'flex-start',
   },
+
+  // Cell text styles
   cellText: { fontFamily: 'Times-Roman', fontSize: 7, textAlign: 'center' },
   cellTextL: { fontFamily: 'Times-Roman', fontSize: 7, textAlign: 'left' },
   boldCell: { fontFamily: 'Times-Bold', fontSize: 7, textAlign: 'center' },
   headerText: { fontFamily: 'Times-Bold', fontSize: 7, textAlign: 'center' },
-  // Footer
-  footerRow: { flexDirection: 'row', marginTop: 14 },
-  footerCol: { width: '33.33%' },
-  footerColC: { width: '33.33%', alignItems: 'center' },
-  footerColR: { width: '33.33%', alignItems: 'flex-end' },
+
+  // === FOOTER ===
+  footerRow: { flexDirection: 'row', marginTop: 16 },
+  footerLeft: { width: '50%', paddingRight: '25%' },
+  footerRight: { width: '50%', paddingLeft: '25%' },
   footerLabel: { fontFamily: 'Times-Roman', fontSize: 8, marginBottom: 48 },
-  footerLabelR: { fontFamily: 'Times-Roman', fontSize: 8, marginBottom: 48, textAlign: 'right' },
-  footerName: { fontFamily: 'Times-Bold', fontSize: 8 },
-  footerNIP: { fontFamily: 'Times-Roman', fontSize: 8 },
+  footerNameWrap: {
+    fontFamily: 'Times-Bold', fontSize: 8, textAlign: 'center',
+    borderBottomWidth: 1, borderColor: '#000000', paddingBottom: 2,
+  },
+  footerNIP: { fontFamily: 'Times-Roman', fontSize: 8, textAlign: 'center', marginTop: 4 },
   footerDateText: { fontFamily: 'Times-Roman', fontSize: 8, textAlign: 'center' },
+  footerRightLabel: { fontFamily: 'Times-Roman', fontSize: 8, textAlign: 'center', marginTop: 4 },
 });
 
-// Simple cell helper
-const C = ({ w, bold, left, noRight, noBottom, children, minH }) => (
-  <View style={[
-    left ? s.cellL : s.cell,
-    { width: w },
-    noRight ? { borderRightWidth: 0 } : {},
-    noBottom ? { borderBottomWidth: 0 } : {},
-    minH ? { minHeight: minH } : {},
-  ]}>
+// ============ TABLE HEADER ============
+const TableHeader = () => (
+  <View style={s.tableRow}>
+    {/* No — rowSpan 2 */}
+    <View style={[{ width: COL.NO }, s.cell]}>
+      <Text style={s.headerText}>No</Text>
+    </View>
+    {/* Tanggal — rowSpan 2 */}
+    <View style={[{ width: COL.TANGGAL }, s.cell]}>
+      <Text style={s.headerText}>Tanggal</Text>
+    </View>
+    {/* Kegiatan Tugas Jabatan — rowSpan 2 */}
+    <View style={[{ width: COL.KEGIATAN }, s.cell]}>
+      <Text style={s.headerText}>Kegiatan Tugas Jabatan</Text>
+    </View>
+    {/* Keterangan — rowSpan 2 */}
+    <View style={[{ width: COL.KETERANGAN }, s.cell]}>
+      <Text style={s.headerText}>Keterangan</Text>
+    </View>
+    {/* Kuantitas / Output — rowSpan 2 */}
+    <View style={[{ width: COL.KUANTITAS }, s.cell]}>
+      <Text style={s.headerText}>Kuantitas / Output</Text>
+    </View>
+
+    {/* Waktu Pengerjaan — colspan 3 */}
+    <View style={{ width: '25%', flexDirection: 'column' }}>
+      {/* Title row */}
+      <View style={{
+        borderRightWidth: 1, borderBottomWidth: 1, borderColor: '#000000',
+        alignItems: 'center', justifyContent: 'center', padding: 2,
+      }}>
+        <Text style={s.headerText}>Waktu Pengerjaan</Text>
+      </View>
+      {/* Sub-columns */}
+      <View style={{ flexDirection: 'row' }}>
+        <View style={[s.cell, { width: '32%', borderTopWidth: 0 }]}>
+          <Text style={s.headerText}>Mulai</Text>
+        </View>
+        <View style={[s.cell, { width: '32%', borderTopWidth: 0 }]}>
+          <Text style={s.headerText}>Selesai</Text>
+        </View>
+        <View style={[s.cell, { width: '36%', borderTopWidth: 0 }]}>
+          <Text style={s.headerText}>Lama</Text>
+        </View>
+      </View>
+    </View>
+
+    {/* Paraf Verifikasi — rowSpan 2 */}
+    <View style={[{ width: COL.PARAF }, s.cell]}>
+      <Text style={s.headerText}>Paraf Verifikasi</Text>
+    </View>
+  </View>
+);
+
+// ============ CELL HELPERS ============
+const Cell = ({ w, bold, left, children }) => (
+  <View style={[left ? s.cellL : s.cell, { width: w }]}>
     {bold
       ? <Text style={s.boldCell}>{children}</Text>
       : <Text style={left ? s.cellTextL : s.cellText}>{children}</Text>
@@ -86,66 +154,24 @@ const C = ({ w, bold, left, noRight, noBottom, children, minH }) => (
   </View>
 );
 
-// Kegiatan cell with 2 text lines
-const KegiatanCell = ({ jabatan, nomor, namaKegiatan }) => (
-  <View style={[s.cellL, { width: '28%' }]}>
-    <Text style={s.cellTextL}>{`${jabatan} ${nomor}`}</Text>
+// Kegiatan cell with 2 text lines: jabatan + nama kegiatan
+const KegiatanCell = ({ jabatan, namaKegiatan }) => (
+  <View style={[s.cellL, { width: COL.KEGIATAN }]}>
+    <Text style={s.cellTextL}>{jabatan}</Text>
     <Text style={s.cellTextL}>{namaKegiatan}</Text>
   </View>
 );
 
-// 2-row table header
-const TableHeader = () => (
-  <View style={s.tableRow}>
-    {/* Simple cells that span 2 rows (via minHeight) */}
-    <C w="4%" bold minH={32}>No</C>
-    <C w="10%" bold minH={32}>Tanggal</C>
-    <C w="28%" bold minH={32}>Kegiatan Tugas Jabatan</C>
-    <C w="8%" bold minH={32}>Keterangan</C>
-    <C w="9%" bold minH={32}>Kuantitas / Output</C>
+// ============ DATE FORMATTER ============
+// Convert "YYYY-MM-DD" → "DDMMYYYY"
+const formatDateDDMMYYYY = (dateStr) => {
+  if (!dateStr) return '';
+  const parts = dateStr.split('-');
+  if (parts.length !== 3) return dateStr;
+  return `${parts[2]}${parts[1]}${parts[0]}`;
+};
 
-    {/* Waktu Pengerjaan group (25%) */}
-    <View style={{
-      width: '25%',
-      flexDirection: 'column',
-      borderRightWidth: 0,
-      borderBottomWidth: 0,
-    }}>
-      {/* Title row */}
-      <View style={{
-        borderBottomWidth: 1, borderColor: '#000000',
-        alignItems: 'center', justifyContent: 'center',
-        padding: 2, minHeight: 16,
-      }}>
-        <Text style={s.headerText}>Waktu Pengerjaan</Text>
-      </View>
-      {/* Sub-columns */}
-      <View style={{ flexDirection: 'row', flex: 1 }}>
-        <View style={{
-          width: '32%', borderRightWidth: 1, borderBottomWidth: 1, borderColor: '#000000',
-          alignItems: 'center', justifyContent: 'center', padding: 2, minHeight: 16,
-        }}>
-          <Text style={s.headerText}>Mulai</Text>
-        </View>
-        <View style={{
-          width: '32%', borderRightWidth: 1, borderBottomWidth: 1, borderColor: '#000000',
-          alignItems: 'center', justifyContent: 'center', padding: 2, minHeight: 16,
-        }}>
-          <Text style={s.headerText}>Selesai</Text>
-        </View>
-        <View style={{
-          width: '36%', borderRightWidth: 1, borderBottomWidth: 1, borderColor: '#000000',
-          alignItems: 'center', justifyContent: 'center', padding: 2, minHeight: 16,
-        }}>
-          <Text style={s.headerText}>Lama</Text>
-        </View>
-      </View>
-    </View>
-
-    <C w="16%" bold minH={32}>Paraf Verifikasi</C>
-  </View>
-);
-
+// ============ MAIN COMPONENT ============
 const LaporanPDF = ({ monthData, settings }) => {
   const { pegawai = {}, atasan = {}, headerDokumen = {} } = settings || {};
   const { bulan = 1, tahun = new Date().getFullYear(), hari = [] } = monthData || {};
@@ -155,19 +181,23 @@ const LaporanPDF = ({ monthData, settings }) => {
   const kota = headerDokumen?.kota || '';
   const showHeader = !!(headerDokumen?.logoBase64 || headerDokumen?.namaDinas);
 
-  // Only saved days
+  // Only saved days with filled kegiatan
   const savedDays = hari.filter(d => d.disimpan && d.kegiatan?.some(k => k.namaKegiatan?.trim()));
 
-  // Calculate grand total
+  // Grand total
   const grandTotalMenit = savedDays.reduce((sum, d) => sum + (d.totalMenitHari || 0), 0);
   const grandTotalJam = Math.floor(grandTotalMenit / 60);
+  const grandTotalSisa = grandTotalMenit % 60;
+  const grandTotalText = grandTotalSisa === 0
+    ? `${grandTotalJam} Jam`
+    : `${grandTotalJam} Jam ${grandTotalSisa} Menit`;
 
   const footerDate = `${lastDay} ${namaBulan} ${tahun}`;
 
   return (
     <Document>
       <Page size="A4" style={s.page} wrap>
-        {/* Section 1: Header Dokumen (optional) */}
+        {/* ============ SECTION 1: HEADER DOKUMEN (OPTIONAL) ============ */}
         {showHeader && (
           <View style={s.logoSection}>
             {headerDokumen?.logoBase64 && (
@@ -179,7 +209,7 @@ const LaporanPDF = ({ monthData, settings }) => {
           </View>
         )}
 
-        {/* Section 2: Header Pegawai & Atasan */}
+        {/* ============ SECTION 2: HEADER PEGAWAI & ATASAN ============ */}
         <View style={s.headerSection}>
           <View style={s.headerCol}>
             <Text style={s.hTitle}>PEGAWAI</Text>
@@ -219,13 +249,13 @@ const LaporanPDF = ({ monthData, settings }) => {
           </View>
         </View>
 
-        {/* Section 3 & 4: Main Table */}
+        {/* ============ SECTION 3 & 4: TABEL UTAMA ============ */}
         <View style={s.table}>
           <TableHeader />
 
           {savedDays.length === 0 && (
             <View style={s.tableRow}>
-              <C w="100%" bold>Belum ada kegiatan yang disimpan</C>
+              <Cell w="100%" bold>Belum ada kegiatan yang disimpan</Cell>
             </View>
           )}
 
@@ -238,6 +268,8 @@ const LaporanPDF = ({ monthData, settings }) => {
               ? `Total Jam Kerja Efektif ${totalJamHari} Jam`
               : `Total Jam Kerja Efektif ${totalJamHari} Jam ${totalMenitSisa} Menit`;
 
+            const tanggalFormatted = formatDateDDMMYYYY(day.tanggal);
+
             return (
               <React.Fragment key={day.tanggal}>
                 {filled.map((k, kIdx) => {
@@ -245,62 +277,91 @@ const LaporanPDF = ({ monthData, settings }) => {
                   const durStr = durMin !== null ? minutesToHHMMSS(durMin) : '—';
                   const mulaiStr = k.jamMulai ? k.jamMulai + ':00' : '—';
                   const selesaiStr = k.jamSelesai ? k.jamSelesai + ':00' : '—';
-                  const jabatanPendek = (pegawai?.jabatan || '').split(' ').slice(0, 3).join(' ');
+
+                  const isFirstRow = kIdx === 0;
 
                   return (
                     <View key={k.id} style={s.tableRow} wrap={false}>
-                      <C w="4%">{kIdx === 0 ? String(dayIdx + 1) : ''}</C>
-                      <C w="10%">{kIdx === 0 ? day.tanggal : ''}</C>
+                      {/* No — hanya di baris pertama, sel kosong di baris berikutnya */}
+                      <Cell w={COL.NO}>{isFirstRow ? String(dayIdx + 1) : ''}</Cell>
+                      {/* Tanggal — hanya di baris pertama */}
+                      <Cell w={COL.TANGGAL}>{isFirstRow ? tanggalFormatted : ''}</Cell>
+                      {/* Kegiatan — jabatan penuh + nama kegiatan */}
                       <KegiatanCell
-                        jabatan={jabatanPendek}
-                        nomor={kIdx + 1}
+                        jabatan={pegawai?.jabatan || ''}
                         namaKegiatan={k.namaKegiatan}
                       />
-                      <C w="8%">Selesai</C>
-                      <C w="9%">1 Keg</C>
-                      <C w="8%">{mulaiStr}</C>
-                      <C w="8%">{selesaiStr}</C>
-                      <C w="9%">{durStr}</C>
-                      <C w="16%">{''}</C>
+                      <Cell w={COL.KETERANGAN}>Selesai</Cell>
+                      <Cell w={COL.KUANTITAS}>1 Keg</Cell>
+                      <Cell w={COL.MULAI}>{mulaiStr}</Cell>
+                      <Cell w={COL.SELESAI}>{selesaiStr}</Cell>
+                      <Cell w={COL.LAMA}>{durStr}</Cell>
+                      <Cell w={COL.PARAF}>{''}</Cell>
                     </View>
                   );
                 })}
 
-                {/* Total daily row */}
+                {/* Total harian — colspan 7 kolom (Kegiatan s/d Lama) */}
                 <View style={s.tableRow} wrap={false}>
-                  <C w="4%">{''}</C>
-                  <C w="10%">{''}</C>
-                  <C w="70%" bold>{totalText}</C>
-                  <C w="16%">{''}</C>
+                  <View style={[s.cell, { width: COL.NO, borderRightWidth: 1, borderBottomWidth: 1, borderColor: '#000000' }]}>
+                    <Text style={s.cellText}></Text>
+                  </View>
+                  <View style={[s.cell, { width: COL.TANGGAL, borderRightWidth: 1, borderBottomWidth: 1, borderColor: '#000000' }]}>
+                    <Text style={s.cellText}></Text>
+                  </View>
+                  <View style={[s.cell, {
+                    width: '70%',
+                    borderRightWidth: 1, borderBottomWidth: 1, borderColor: '#000000',
+                    justifyContent: 'center', alignItems: 'center',
+                  }]}>
+                    <Text style={s.boldCell}>{totalText}</Text>
+                  </View>
+                  <View style={[s.cell, { width: COL.PARAF, borderRightWidth: 1, borderBottomWidth: 1, borderColor: '#000000' }]}>
+                    <Text style={s.cellText}></Text>
+                  </View>
                 </View>
               </React.Fragment>
             );
           })}
 
-          {/* Monthly Total Row */}
+          {/* Total Bulanan — colspan semua 9 kolom */}
           <View style={s.tableRow}>
-            <C w="100%" bold>
-              {`Total Jam Kerja Efektif Bulan ${namaBulan} ${tahun} ${grandTotalJam} Jam`}
-            </C>
+            <View style={[s.cell, {
+              width: '100%',
+              justifyContent: 'center', alignItems: 'center',
+            }]}>
+              <Text style={[s.boldCell, { fontSize: 7 }]}>
+                {`Total Jam Kerja Efektif Bulan ${namaBulan} ${tahun} ${grandTotalText}`}
+              </Text>
+            </View>
           </View>
         </View>
 
-        {/* Section 5: Footer Tanda Tangan */}
+        {/* ============ SECTION 5: FOOTER TANDA TANGAN ============ */}
         <View style={s.footerRow} wrap={false}>
-          <View style={s.footerCol}>
+          {/* Kolom Kiri: Pejabat Penilai — posisi ~25% */}
+          <View style={s.footerLeft}>
             <Text style={s.footerLabel}>Pejabat Penilai,</Text>
-            <Text style={s.footerName}>{atasan?.nama || ''}</Text>
-            <Text style={s.footerNIP}>NIP {atasan?.nip || ''}</Text>
+            <View style={{ alignItems: 'center' }}>
+              <View style={{ width: '100%', marginBottom: 4 }}>
+                <Text style={s.footerNameWrap}>{atasan?.nama || ''}</Text>
+              </View>
+              <Text style={s.footerNIP}>NIP {atasan?.nip || ''}</Text>
+            </View>
           </View>
-          <View style={s.footerColC}>
+
+          {/* Kolom Kanan: Tanggal + Pegawai — posisi ~75% */}
+          <View style={s.footerRight}>
             <Text style={s.footerDateText}>
               {kota ? `${kota}, ${footerDate}` : footerDate}
             </Text>
-          </View>
-          <View style={s.footerColR}>
-            <Text style={s.footerLabelR}>Pegawai Yang Membuat,</Text>
-            <Text style={[s.footerName, { textAlign: 'right' }]}>{pegawai?.nama || ''}</Text>
-            <Text style={[s.footerNIP, { textAlign: 'right' }]}>NIP. {pegawai?.nip || ''}</Text>
+            <Text style={s.footerRightLabel}>Pegawai Yang Membuat,</Text>
+            <View style={{ alignItems: 'center' }}>
+              <View style={{ width: '100%', marginBottom: 4 }}>
+                <Text style={s.footerNameWrap}>{pegawai?.nama || ''}</Text>
+              </View>
+              <Text style={s.footerNIP}>NIP. {pegawai?.nip || ''}</Text>
+            </View>
           </View>
         </View>
       </Page>
