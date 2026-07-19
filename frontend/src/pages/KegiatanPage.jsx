@@ -16,6 +16,27 @@ function loadSettings() {
   try { return JSON.parse(localStorage.getItem('settings')) || null; } catch { return null; }
 }
 
+/** One-shot: old default Apel Pagi 07:30–08:00 → 07:00–07:30 */
+function migrateLegacyApelPagi(monthData) {
+  if (!monthData?.hari) return { data: monthData, changed: false };
+  let changed = false;
+  const hari = monthData.hari.map(h => {
+    if (!h.kegiatan?.length) return h;
+    let dayChanged = false;
+    const kegiatan = h.kegiatan.map(k => {
+      const isApel = k.isApelPagi || k.namaKegiatan === 'Apel Pagi';
+      if (isApel && k.jamMulai === '07:30' && k.jamSelesai === '08:00') {
+        dayChanged = true;
+        changed = true;
+        return { ...k, jamMulai: '07:00', jamSelesai: '07:30' };
+      }
+      return k;
+    });
+    return dayChanged ? { ...h, kegiatan } : h;
+  });
+  return { data: changed ? { ...monthData, hari } : monthData, changed };
+}
+
 const KegiatanPage = ({ onGoToSettings }) => {
   const today = new Date();
   const [activeMonth, setActiveMonth] = useState({
@@ -43,7 +64,10 @@ const KegiatanPage = ({ onGoToSettings }) => {
     try {
       const raw = localStorage.getItem(key);
       if (raw) {
-        setMonthData(JSON.parse(raw));
+        const parsed = JSON.parse(raw);
+        const { data, changed } = migrateLegacyApelPagi(parsed);
+        if (changed) localStorage.setItem(key, JSON.stringify(data));
+        setMonthData(data);
       } else {
         const empty = generateEmptyMonthData(activeMonth.bulan, activeMonth.tahun);
         localStorage.setItem(key, JSON.stringify(empty));

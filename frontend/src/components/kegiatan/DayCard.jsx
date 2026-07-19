@@ -61,7 +61,7 @@ const DayCard = ({ dayData, storageKey, onSaveDay, prevDayKegiatan }) => {
     const apelPagi = {
       id: generateId(),
       namaKegiatan: 'Apel Pagi',
-      jamMulai: '07:30', jamSelesai: '08:00',
+      jamMulai: '07:00', jamSelesai: '07:30',
       isApelPagi: true
     };
     const updated = [apelPagi, ...kegiatan];

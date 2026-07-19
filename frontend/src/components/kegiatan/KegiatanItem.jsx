@@ -32,10 +32,9 @@ const KegiatanItem = ({ kegiatan, errors = {}, onUpdate, onDelete }) => {
             type="time"
             value={jamMulai || ''}
             onChange={e => onUpdate('jamMulai', e.target.value)}
-            readOnly={isApelPagi}
             className={`w-full text-sm rounded-lg border px-2 py-2 min-h-[40px] focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all ${
-              isApelPagi ? 'bg-teal-100 border-teal-200 cursor-not-allowed text-gray-600' :
-              errors.jamMulai ? 'border-red-400 bg-red-50' : 'border-gray-200 bg-white'
+              errors.jamMulai ? 'border-red-400 bg-red-50' :
+              isApelPagi ? 'border-teal-200 bg-white' : 'border-gray-200 bg-white'
             }`}
             data-testid={`activity-start-time-${id}`}
           />
@@ -50,10 +49,9 @@ const KegiatanItem = ({ kegiatan, errors = {}, onUpdate, onDelete }) => {
             type="time"
             value={jamSelesai || ''}
             onChange={e => onUpdate('jamSelesai', e.target.value)}
-            readOnly={isApelPagi}
             className={`w-full text-sm rounded-lg border px-2 py-2 min-h-[40px] focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all ${
-              isApelPagi ? 'bg-teal-100 border-teal-200 cursor-not-allowed text-gray-600' :
-              errors.jamSelesai ? 'border-red-400 bg-red-50' : 'border-gray-200 bg-white'
+              errors.jamSelesai ? 'border-red-400 bg-red-50' :
+              isApelPagi ? 'border-teal-200 bg-white' : 'border-gray-200 bg-white'
             }`}
             data-testid={`activity-end-time-${id}`}
           />

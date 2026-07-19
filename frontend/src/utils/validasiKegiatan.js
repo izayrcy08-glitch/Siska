@@ -30,17 +30,13 @@ export function validateKegiatanHari(kegiatanList) {
   const hasApelPagi = filled[0]?.namaKegiatan === 'Apel Pagi';
   const firstNonApel = hasApelPagi ? filled[1] : filled[0];
 
-  // Validate minimum start time
-  if (firstNonApel && firstNonApel.jamMulai && !errors[firstNonApel.id]?.jamMulai) {
+  // Without Apel Pagi, first activity must start at or after 06:00.
+  // With Apel Pagi, subsequent activities are constrained by overlap vs apel end time.
+  if (!hasApelPagi && firstNonApel && firstNonApel.jamMulai && !errors[firstNonApel.id]?.jamMulai) {
     const startMin = parseTimeToMinutes(firstNonApel.jamMulai);
-    if (startMin !== null) {
-      const minMin = hasApelPagi ? 8 * 60 : 6 * 60;
-      if (startMin < minMin) {
-        errors[firstNonApel.id] = errors[firstNonApel.id] || {};
-        errors[firstNonApel.id].jamMulai = hasApelPagi
-          ? 'Jam mulai minimal 08:00 (setelah Apel Pagi)'
-          : 'Jam mulai minimal 06:00';
-      }
+    if (startMin !== null && startMin < 6 * 60) {
+      errors[firstNonApel.id] = errors[firstNonApel.id] || {};
+      errors[firstNonApel.id].jamMulai = 'Jam mulai minimal 06:00';
     }
   }
 
