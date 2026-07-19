@@ -1,13 +1,28 @@
 /* eslint-disable no-restricted-globals */
 
-const CACHE_NAME = 'siska-v1';
-const RUNTIME_CACHE = 'siska-runtime-v1';
+// Bump versi ini setiap kali asset PWA (ikon/manifest) berubah
+const CACHE_NAME = 'siska-v2';
+const RUNTIME_CACHE = 'siska-runtime-v2';
 
 // Resource yang di-precache saat service worker di-install
 const PRECACHE_URLS = [
   '/',
   '/index.html',
 ];
+
+function isIconOrManifest(url) {
+  try {
+    const path = new URL(url).pathname;
+    return (
+      path.startsWith('/icons/') ||
+      path === '/manifest.json' ||
+      path === '/favicon.ico' ||
+      path.startsWith('/favicon')
+    );
+  } catch {
+    return false;
+  }
+}
 
 // Install event: precache resource statis
 self.addEventListener('install', (event) => {
@@ -19,29 +34,24 @@ self.addEventListener('install', (event) => {
   );
 });
 
-// Activate event: hapus cache lama
+// Activate event: hapus SEMUA cache lama (termasuk ikon lama di runtime cache)
 self.addEventListener('activate', (event) => {
   const currentCaches = [CACHE_NAME, RUNTIME_CACHE];
   event.waitUntil(
     caches
       .keys()
-      .then((cacheNames) => {
-        return cacheNames.filter(
-          (cacheName) => !currentCaches.includes(cacheName)
-        );
-      })
-      .then((cachesToDelete) => {
-        return Promise.all(
-          cachesToDelete.map((cacheToDelete) => caches.delete(cacheToDelete))
-        );
-      })
+      .then((cacheNames) =>
+        cacheNames.filter((cacheName) => !currentCaches.includes(cacheName))
+      )
+      .then((cachesToDelete) =>
+        Promise.all(cachesToDelete.map((cacheToDelete) => caches.delete(cacheToDelete)))
+      )
       .then(() => self.clients.claim())
   );
 });
 
-// Fetch event: strategi Network First dengan fallback ke cache
+// Fetch event
 self.addEventListener('fetch', (event) => {
-  // Skip non-GET requests dan Chrome extensions
   if (
     event.request.method !== 'GET' ||
     !event.request.url.startsWith('http')
@@ -49,13 +59,17 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Untuk request API, gunakan Network First
+  // Ikon & manifest: selalu coba network dulu agar logo PWA tidak macet di cache lama
+  if (isIconOrManifest(event.request.url)) {
+    event.respondWith(networkFirst(event.request));
+    return;
+  }
+
   if (event.request.url.includes('/api/')) {
     event.respondWith(networkFirst(event.request));
     return;
   }
 
-  // Untuk static assets (JS, CSS, fonts, images), gunakan Cache First
   if (
     event.request.destination === 'script' ||
     event.request.destination === 'style' ||
@@ -66,7 +80,6 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Default: Network First untuk navigasi, Cache First untuk lainnya
   if (event.request.mode === 'navigate') {
     event.respondWith(networkFirst(event.request));
   } else {
@@ -74,7 +87,6 @@ self.addEventListener('fetch', (event) => {
   }
 });
 
-// Strategi Cache First: ambil dari cache dulu, fallback ke network
 async function cacheFirst(request) {
   const cachedResponse = await caches.match(request);
   if (cachedResponse) {
@@ -89,7 +101,6 @@ async function cacheFirst(request) {
     }
     return networkResponse;
   } catch (error) {
-    // Return offline fallback untuk navigasi
     if (request.mode === 'navigate') {
       return caches.match('/index.html');
     }
@@ -97,7 +108,6 @@ async function cacheFirst(request) {
   }
 }
 
-// Strategi Network First: ambil dari network dulu, fallback ke cache
 async function networkFirst(request) {
   try {
     const networkResponse = await fetch(request);
@@ -111,7 +121,6 @@ async function networkFirst(request) {
     if (cachedResponse) {
       return cachedResponse;
     }
-    // Fallback ke index.html untuk navigasi
     if (request.mode === 'navigate') {
       return caches.match('/index.html');
     }
