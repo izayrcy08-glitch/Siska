@@ -1,22 +1,30 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { toast } from 'sonner';
 import BulanPicker from '../components/kegiatan/BulanPicker';
 import DayCard from '../components/kegiatan/DayCard';
 import TotalBulanan from '../components/kegiatan/TotalBulanan';
+import OnboardingCard from '../components/kegiatan/OnboardingCard';
 import PreviewModal from '../components/pdf/PreviewModal';
 import {
-  getStorageKey, generateEmptyMonthData
+  getStorageKey, generateEmptyMonthData, getDateString, isWeekend
 } from '../utils/timeUtils';
 import {
-  AlertDialog, AlertDialogAction, AlertDialogCancel,
-  AlertDialogContent, AlertDialogDescription,
-  AlertDialogFooter, AlertDialogHeader, AlertDialogTitle
-} from '../components/ui/alert-dialog';
+  countMonthProgress,
+  dayFillStatus,
+  dismissOnboarding,
+  isOnboardingDismissed,
+  isPDFReady as checkPDFReady,
+  loadSettings,
+  saveActivity,
+} from '../utils/storage';
 
-function loadSettings() {
-  try { return JSON.parse(localStorage.getItem('settings')) || null; } catch { return null; }
-}
+const FILTERS = [
+  { key: 'semua', label: 'Semua' },
+  { key: 'kerja', label: 'Kerja' },
+  { key: 'belum', label: 'Belum diisi' },
+  { key: 'tersimpan', label: 'Tersimpan' },
+];
 
-/** One-shot: old default Apel Pagi 07:30–08:00 → 07:00–07:30 */
 function migrateLegacyApelPagi(monthData) {
   if (!monthData?.hari) return { data: monthData, changed: false };
   let changed = false;
@@ -37,28 +45,28 @@ function migrateLegacyApelPagi(monthData) {
   return { data: changed ? { ...monthData, hari } : monthData, changed };
 }
 
-const KegiatanPage = ({ onGoToSettings }) => {
-  const today = new Date();
-  const [activeMonth, setActiveMonth] = useState({
-    bulan: today.getMonth() + 1,
-    tahun: today.getFullYear()
-  });
-  const [monthData, setMonthData] = useState(null);
-  const [showMonthConfirm, setShowMonthConfirm] = useState(false);
-  const [pendingMonth, setPendingMonth] = useState(null);
-  const [showPreview, setShowPreview] = useState(false);
-  const [settings, setSettings] = useState(null);
+function todayParts() {
+  const d = new Date();
+  return {
+    bulan: d.getMonth() + 1,
+    tahun: d.getFullYear(),
+    tanggal: getDateString(d.getFullYear(), d.getMonth() + 1, d.getDate()),
+  };
+}
 
-  // Load settings on mount and keep fresh
+const KegiatanPage = ({ activeMonth, onMonthChange, onGoToSettings, dataVersion = 0 }) => {
+  const [monthData, setMonthData] = useState(null);
+  const [showPreview, setShowPreview] = useState(false);
+  const [settings, setSettings] = useState(() => loadSettings());
+  const [filter, setFilter] = useState('semua');
+  const [focusDate, setFocusDate] = useState(null);
+  const [showOnboarding, setShowOnboarding] = useState(() => !isOnboardingDismissed());
+  const [pdfOpenedOnce, setPdfOpenedOnce] = useState(false);
+
   useEffect(() => {
     setSettings(loadSettings());
-  }, []);
+  }, [dataVersion]);
 
-  // Re-read settings on every render for isPDFReady check
-  const freshSettings = loadSettings();
-  const isPDFReady = !!(freshSettings?.pegawai?.nama);
-
-  // Load month data
   useEffect(() => {
     const key = getStorageKey(activeMonth.bulan, activeMonth.tahun);
     try {
@@ -66,18 +74,21 @@ const KegiatanPage = ({ onGoToSettings }) => {
       if (raw) {
         const parsed = JSON.parse(raw);
         const { data, changed } = migrateLegacyApelPagi(parsed);
-        if (changed) localStorage.setItem(key, JSON.stringify(data));
+        if (changed) {
+          const result = saveActivity(key, data);
+          if (!result.ok) toast.error('Gagal menyimpan migrasi data');
+        }
         setMonthData(data);
       } else {
         const empty = generateEmptyMonthData(activeMonth.bulan, activeMonth.tahun);
-        localStorage.setItem(key, JSON.stringify(empty));
+        const result = saveActivity(key, empty);
+        if (!result.ok) toast.error('Gagal membuat data bulan baru');
         setMonthData(empty);
       }
     } catch {
-      const empty = generateEmptyMonthData(activeMonth.bulan, activeMonth.tahun);
-      setMonthData(empty);
+      setMonthData(generateEmptyMonthData(activeMonth.bulan, activeMonth.tahun));
     }
-  }, [activeMonth]);
+  }, [activeMonth, dataVersion]);
 
   const handleSaveDay = useCallback((tanggal, updatedDay) => {
     setMonthData(prev => {
@@ -86,41 +97,104 @@ const KegiatanPage = ({ onGoToSettings }) => {
         ...prev,
         hari: prev.hari.map(h => h.tanggal === tanggal ? { ...h, ...updatedDay } : h)
       };
-      localStorage.setItem(getStorageKey(prev.bulan, prev.tahun), JSON.stringify(newData));
+      const key = getStorageKey(prev.bulan, prev.tahun);
+      const result = saveActivity(key, newData);
+      if (!result.ok) {
+        toast.error('Gagal menyimpan kegiatan');
+      }
       return newData;
     });
   }, []);
 
   const handleMonthChange = (newBulan, newTahun) => {
-    const hasData = monthData?.hari?.some(h => h.kegiatan && h.kegiatan.length > 0);
-    if (hasData) {
-      setPendingMonth({ bulan: newBulan, tahun: newTahun });
-      setShowMonthConfirm(true);
-    } else {
-      setActiveMonth({ bulan: newBulan, tahun: newTahun });
-    }
-  };
-
-  const confirmMonthChange = () => {
-    if (!pendingMonth) return;
-    const key = getStorageKey(activeMonth.bulan, activeMonth.tahun);
-    localStorage.removeItem(key);
-    setActiveMonth(pendingMonth);
-    setShowMonthConfirm(false);
-    setPendingMonth(null);
+    // Multi-month safe: only switch view, never delete previous month
+    onMonthChange({ bulan: newBulan, tahun: newTahun });
   };
 
   const handleOpenPreview = () => {
-    // Fresh read of settings
     setSettings(loadSettings());
     setShowPreview(true);
+    setPdfOpenedOnce(true);
   };
+
+  const today = todayParts();
+  const isCurrentMonth =
+    activeMonth.bulan === today.bulan && activeMonth.tahun === today.tahun;
+
+  const handleGoToday = () => {
+    if (!isCurrentMonth) {
+      onMonthChange({ bulan: today.bulan, tahun: today.tahun });
+    }
+    setFocusDate(today.tanggal);
+    // Scroll after render
+    requestAnimationFrame(() => {
+      setTimeout(() => {
+        const el = document.getElementById(`day-${today.tanggal}`);
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 80);
+    });
+  };
+
+  // Auto-focus today when landing on current month first load
+  useEffect(() => {
+    if (isCurrentMonth && monthData) {
+      setFocusDate(today.tanggal);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeMonth.bulan, activeMonth.tahun, !!monthData]);
+
+  const progress = useMemo(
+    () => countMonthProgress(monthData?.hari),
+    [monthData]
+  );
+
+  const progressLabel =
+    progress.total > 0
+      ? `${progress.tersimpan} tersimpan · ${progress.draft} draf · ${progress.kosong} kosong`
+      : null;
+
+  const filteredHari = useMemo(() => {
+    if (!monthData?.hari) return [];
+    return monthData.hari.filter((day) => {
+      const status = dayFillStatus(day);
+      if (filter === 'kerja') return !isWeekend(day.tanggal);
+      if (filter === 'belum') return status === 'kosong' || status === 'draft';
+      if (filter === 'tersimpan') return status === 'tersimpan';
+      return true;
+    });
+  }, [monthData, filter]);
 
   const totalMenitBulan = monthData?.hari
     ?.filter(h => h.disimpan)
     .reduce((sum, h) => sum + (h.totalMenitHari || 0), 0) || 0;
 
   const storageKey = getStorageKey(activeMonth.bulan, activeMonth.tahun);
+  const freshSettings = loadSettings();
+  const pdfReady = checkPDFReady(freshSettings || settings);
+  const savedDaysCount = progress.tersimpan;
+
+  const stepsDone = {
+    settings: pdfReady,
+    kegiatan: savedDaysCount > 0,
+    pdf: pdfOpenedOnce,
+  };
+
+  // Auto-hide onboarding when fully complete
+  useEffect(() => {
+    if (stepsDone.settings && stepsDone.kegiatan && stepsDone.pdf && showOnboarding) {
+      // keep visible briefly? Better keep until user dismisses or all truly done — hide when all done
+      const t = setTimeout(() => {
+        dismissOnboarding();
+        setShowOnboarding(false);
+      }, 800);
+      return () => clearTimeout(t);
+    }
+  }, [stepsDone.settings, stepsDone.kegiatan, stepsDone.pdf, showOnboarding]);
+
+  const handleDismissOnboarding = () => {
+    dismissOnboarding();
+    setShowOnboarding(false);
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -128,18 +202,61 @@ const KegiatanPage = ({ onGoToSettings }) => {
         bulan={activeMonth.bulan}
         tahun={activeMonth.tahun}
         onMonthChange={handleMonthChange}
+        onGoToday={handleGoToday}
+        showGoToday
+        progressLabel={progressLabel}
       />
 
+      {showOnboarding && (
+        <OnboardingCard
+          stepsDone={stepsDone}
+          onGoToSettings={onGoToSettings}
+          onDismiss={handleDismissOnboarding}
+        />
+      )}
+
+      {/* Filters */}
+      <div className="px-3 pt-3 flex gap-1.5 overflow-x-auto no-scrollbar">
+        {FILTERS.map((f) => {
+          const active = filter === f.key;
+          return (
+            <button
+              key={f.key}
+              type="button"
+              onClick={() => setFilter(f.key)}
+              data-testid={`filter-${f.key}`}
+              className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
+                active
+                  ? 'bg-blue-900 text-white border-blue-900'
+                  : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
+              }`}
+            >
+              {f.label}
+            </button>
+          );
+        })}
+      </div>
+
       <div className="px-3 pt-3">
-        {monthData?.hari?.map((dayData, idx) => {
+        {!monthData && (
+          <div className="text-center py-10 text-sm text-gray-400">Memuat data bulan...</div>
+        )}
+        {monthData && filteredHari.length === 0 && (
+          <div className="text-center py-10 text-sm text-gray-400 bg-white rounded-2xl border border-gray-100">
+            Tidak ada hari yang cocok dengan filter ini.
+          </div>
+        )}
+        {filteredHari.map((dayData) => {
+          const idx = monthData.hari.findIndex((h) => h.tanggal === dayData.tanggal);
           const prevDayKegiatan = idx > 0 ? (monthData.hari[idx - 1].kegiatan || null) : null;
           return (
             <DayCard
-              key={dayData.tanggal}
+              key={`${dayData.tanggal}-${dataVersion}`}
               dayData={dayData}
               storageKey={storageKey}
               onSaveDay={handleSaveDay}
               prevDayKegiatan={prevDayKegiatan}
+              forceExpand={focusDate === dayData.tanggal}
             />
           );
         })}
@@ -149,36 +266,18 @@ const KegiatanPage = ({ onGoToSettings }) => {
         bulan={activeMonth.bulan}
         tahun={activeMonth.tahun}
         totalMenitBulan={totalMenitBulan}
-        isPDFReady={isPDFReady}
+        isPDFReady={pdfReady}
+        settings={freshSettings || settings}
+        draftCount={progress.draft}
+        savedDaysCount={savedDaysCount}
         onPreviewPDF={handleOpenPreview}
         onGoToSettings={onGoToSettings}
       />
 
-      {/* Month Change Confirmation */}
-      <AlertDialog open={showMonthConfirm} onOpenChange={setShowMonthConfirm}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Ganti Bulan?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Pindah ke bulan baru akan menghapus semua kegiatan bulan ini. Lanjutkan?
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => { setShowMonthConfirm(false); setPendingMonth(null); }}>
-              Batal
-            </AlertDialogCancel>
-            <AlertDialogAction onClick={confirmMonthChange} data-testid="confirm-month-change-btn">
-              Ya, Lanjutkan
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      {/* PDF Preview Modal */}
       {showPreview && (
         <PreviewModal
           monthData={monthData}
-          settings={settings}
+          settings={settings || freshSettings}
           onClose={() => setShowPreview(false)}
         />
       )}

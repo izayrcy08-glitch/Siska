@@ -7,14 +7,19 @@ export function validateKegiatanHari(kegiatanList) {
   const filled = kegiatanList.filter(k => k.namaKegiatan && k.namaKegiatan.trim());
   if (filled.length === 0) return { errors, valid: true };
 
-  // Validate time format and logic for each activity
+  // Validate required times, format, and logic for each activity
   for (const k of filled) {
     errors[k.id] = {};
 
-    if (k.jamMulai && parseTimeToMinutes(k.jamMulai) === null) {
+    if (!k.jamMulai?.trim()) {
+      errors[k.id].jamMulai = 'Jam mulai wajib diisi';
+    } else if (parseTimeToMinutes(k.jamMulai) === null) {
       errors[k.id].jamMulai = 'Format jam tidak valid';
     }
-    if (k.jamSelesai && parseTimeToMinutes(k.jamSelesai) === null) {
+
+    if (!k.jamSelesai?.trim()) {
+      errors[k.id].jamSelesai = 'Jam selesai wajib diisi';
+    } else if (parseTimeToMinutes(k.jamSelesai) === null) {
       errors[k.id].jamSelesai = 'Format jam tidak valid';
     }
 

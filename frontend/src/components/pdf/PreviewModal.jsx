@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { pdf } from '@react-pdf/renderer';
+import { toast } from 'sonner';
 import LaporanPDF from './LaporanPDF';
 import { BULAN_INDONESIA } from '../../utils/timeUtils';
 import { X, Download, FileText, ExternalLink, Loader2, AlertCircle } from 'lucide-react';
@@ -101,6 +102,7 @@ const PreviewModal = ({ monthData, settings, onClose }) => {
             <a
               href={blobUrl}
               download={namaFile}
+              onClick={() => toast.success('Mengunduh PDF...')}
               className="w-full mb-3 py-3.5 rounded-xl bg-blue-900 text-white text-sm font-semibold flex items-center justify-center gap-2 hover:bg-blue-800 transition-colors active:scale-98 no-underline"
               data-testid="download-pdf-btn"
             >

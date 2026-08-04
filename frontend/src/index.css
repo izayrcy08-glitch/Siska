@@ -11,6 +11,18 @@ body {
   background-color: #f3f4f6;
 }
 
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.safe-bottom {
+  padding-bottom: max(5.5rem, calc(4.5rem + env(safe-area-inset-bottom)));
+}
+
 @layer base {
   :root {
     --background: 210 20% 98%;

@@ -9,7 +9,7 @@ const BottomNav = ({ activeTab, onTabChange }) => {
 
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-200"
+      className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-200 pb-[env(safe-area-inset-bottom)]"
       style={{ boxShadow: '0 -4px 6px -1px rgba(0,0,0,0.05)' }}
     >
       <div className="max-w-md mx-auto flex">

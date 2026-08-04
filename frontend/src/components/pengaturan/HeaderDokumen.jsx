@@ -1,48 +1,30 @@
-import React, { useState, useRef } from 'react';
+import React, { useRef } from 'react';
 import { Building2, Upload, X } from 'lucide-react';
 
-const SETTINGS_KEY = 'settings';
-
-function loadSettings() {
-  try { return JSON.parse(localStorage.getItem(SETTINGS_KEY)) || null; } catch { return null; }
-}
-
-function saveSettings(data) {
-  try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(data)); } catch {}
-}
-
-const HeaderDokumen = () => {
-  const init = loadSettings()?.headerDokumen || { logoBase64: null, namaDinas: '', kota: '' };
-  const [form, setForm] = useState(init);
+const HeaderDokumen = ({ value = {}, onChange }) => {
+  const form = {
+    logoBase64: value.logoBase64 || null,
+    namaDinas: value.namaDinas || '',
+    kota: value.kota || '',
+  };
   const fileRef = useRef();
 
-  const handleBlur = (field, value) => {
-    const current = loadSettings() || { pegawai: {}, atasan: {}, headerDokumen: {} };
-    current.headerDokumen = { ...current.headerDokumen, [field]: value };
-    saveSettings(current);
+  const update = (field, next) => {
+    onChange?.({ ...form, [field]: next });
   };
-
-  const update = (field, value) => setForm(prev => ({ ...prev, [field]: value }));
 
   const handleLogoUpload = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
     reader.onload = (ev) => {
-      const base64 = ev.target.result;
-      setForm(prev => ({ ...prev, logoBase64: base64 }));
-      const current = loadSettings() || { pegawai: {}, atasan: {}, headerDokumen: {} };
-      current.headerDokumen = { ...current.headerDokumen, logoBase64: base64 };
-      saveSettings(current);
+      update('logoBase64', ev.target.result);
     };
     reader.readAsDataURL(file);
   };
 
   const removeLogo = () => {
-    setForm(prev => ({ ...prev, logoBase64: null }));
-    const current = loadSettings() || { pegawai: {}, atasan: {}, headerDokumen: {} };
-    current.headerDokumen = { ...current.headerDokumen, logoBase64: null };
-    saveSettings(current);
+    update('logoBase64', null);
     if (fileRef.current) fileRef.current.value = '';
   };
 
@@ -56,19 +38,24 @@ const HeaderDokumen = () => {
       </div>
       <p className="text-xs text-gray-400 mb-4 ml-10">Opsional — tampil di bagian atas PDF</p>
 
-      {/* Logo Upload */}
       <div className="mb-3">
         <label className="block text-xs font-medium text-gray-500 mb-1">Logo Dinas (opsional)</label>
         {form.logoBase64 ? (
           <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl border border-gray-200">
             <img src={form.logoBase64} alt="Logo" className="w-12 h-12 object-contain" />
             <span className="text-sm text-gray-600 flex-1">Logo terpasang</span>
-            <button onClick={removeLogo} className="text-red-400 hover:text-red-600" data-testid="remove-logo-btn">
+            <button
+              type="button"
+              onClick={removeLogo}
+              className="text-red-400 hover:text-red-600"
+              data-testid="remove-logo-btn"
+            >
               <X size={16} />
             </button>
           </div>
         ) : (
           <button
+            type="button"
             onClick={() => fileRef.current?.click()}
             className="w-full flex items-center justify-center gap-2 px-3 py-3 border-2 border-dashed border-gray-300 rounded-xl text-sm text-gray-500 hover:border-blue-400 hover:text-blue-500 transition-colors"
             data-testid="upload-logo-btn"
@@ -77,7 +64,13 @@ const HeaderDokumen = () => {
             Upload logo (PNG/JPG)
           </button>
         )}
-        <input ref={fileRef} type="file" accept="image/png,image/jpeg,image/jpg" onChange={handleLogoUpload} className="hidden" />
+        <input
+          ref={fileRef}
+          type="file"
+          accept="image/png,image/jpeg,image/jpg"
+          onChange={handleLogoUpload}
+          className="hidden"
+        />
       </div>
 
       <div className="space-y-3">
@@ -86,8 +79,7 @@ const HeaderDokumen = () => {
           <input
             type="text"
             value={form.namaDinas}
-            onChange={e => update('namaDinas', e.target.value)}
-            onBlur={e => handleBlur('namaDinas', e.target.value)}
+            onChange={(e) => update('namaDinas', e.target.value)}
             placeholder="Contoh: DINAS PEKERJAAN UMUM"
             className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 bg-gray-50 transition-all"
             data-testid="header-nama-dinas"
@@ -98,8 +90,7 @@ const HeaderDokumen = () => {
           <input
             type="text"
             value={form.kota}
-            onChange={e => update('kota', e.target.value)}
-            onBlur={e => handleBlur('kota', e.target.value)}
+            onChange={(e) => update('kota', e.target.value)}
             placeholder="Contoh: Muara Teweh"
             className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 bg-gray-50 transition-all"
             data-testid="header-kota"

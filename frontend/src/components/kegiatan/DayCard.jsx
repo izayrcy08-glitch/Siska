@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { toast } from 'sonner';
 import KegiatanItem from './KegiatanItem';
 import { validateKegiatanHari } from '../../utils/validasiKegiatan';
 import {
@@ -10,9 +11,17 @@ import {
   AlertDialogContent, AlertDialogDescription,
   AlertDialogFooter, AlertDialogHeader, AlertDialogTitle
 } from '../ui/alert-dialog';
-import { ChevronDown, ChevronUp, Plus, Bell, Save, CheckCircle2, Copy, Trash2 } from 'lucide-react';
+import {
+  ChevronDown, ChevronUp, Plus, Bell, Save, CheckCircle2, Copy, Trash2, MoreHorizontal
+} from 'lucide-react';
 
-const DayCard = ({ dayData, storageKey, onSaveDay, prevDayKegiatan }) => {
+const DayCard = ({
+  dayData,
+  storageKey,
+  onSaveDay,
+  prevDayKegiatan,
+  forceExpand,
+}) => {
   const { tanggal, disimpan: initSaved, totalMenitHari: initTotal } = dayData;
 
   const [kegiatan, setKegiatan] = useState(dayData.kegiatan || []);
@@ -20,18 +29,35 @@ const DayCard = ({ dayData, storageKey, onSaveDay, prevDayKegiatan }) => {
   const [totalMenitHari, setTotalMenitHari] = useState(initTotal || 0);
   const [expanded, setExpanded] = useState(false);
   const [errors, setErrors] = useState({});
-  const [showConfirm, setShowConfirm] = useState(false);
   const [showDeleteAllConfirm, setShowDeleteAllConfirm] = useState(false);
+  const [showCopyConfirm, setShowCopyConfirm] = useState(false);
   const [modifiedAfterSave, setModifiedAfterSave] = useState(false);
   const [saveError, setSaveError] = useState('');
+  const [showMore, setShowMore] = useState(false);
 
   const dayName = getDayName(tanggal);
   const weekend = isWeekend(tanggal);
   const noApelPagiDay = isNoApelPagiDay(tanggal);
   const dayNum = parseInt(tanggal.split('-')[2], 10);
-  const hasApelPagi = kegiatan.some(k => k.namaKegiatan === 'Apel Pagi');
+  const hasApelPagi = kegiatan.some(k => k.namaKegiatan === 'Apel Pagi' || k.isApelPagi);
   const hasFilledKegiatan = kegiatan.some(k => k.namaKegiatan && k.namaKegiatan.trim());
   const canCopyPrev = prevDayKegiatan?.some(k => k.namaKegiatan?.trim());
+
+  useEffect(() => {
+    setKegiatan(dayData.kegiatan || []);
+    setIsSaved(dayData.disimpan || false);
+    setTotalMenitHari(dayData.totalMenitHari || 0);
+    setModifiedAfterSave(false);
+    setErrors({});
+    setSaveError('');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dayData.tanggal, storageKey, dayData.disimpan, dayData.totalMenitHari]);
+
+  useEffect(() => {
+    if (forceExpand) {
+      setExpanded(true);
+    }
+  }, [forceExpand, dayData.tanggal]);
 
   const persistDraft = (updatedKegiatan) => {
     try {
@@ -41,17 +67,24 @@ const DayCard = ({ dayData, storageKey, onSaveDay, prevDayKegiatan }) => {
         const idx = data.hari.findIndex(h => h.tanggal === tanggal);
         if (idx !== -1) {
           data.hari[idx].kegiatan = updatedKegiatan;
+          // Keep disimpan as-is until explicit save; if was saved, parent tracks modified via state only
           localStorage.setItem(storageKey, JSON.stringify(data));
         }
       }
-    } catch {}
+    } catch {
+      toast.error('Gagal menyimpan draf');
+    }
+  };
+
+  const markDirty = () => {
+    if (isSaved) setModifiedAfterSave(true);
   };
 
   const handleAddKegiatan = () => {
     const newK = { id: generateId(), namaKegiatan: '', jamMulai: '', jamSelesai: '' };
     const updated = [...kegiatan, newK];
     setKegiatan(updated);
-    if (isSaved) setModifiedAfterSave(true);
+    markDirty();
     setSaveError('');
     persistDraft(updated);
   };
@@ -66,25 +99,38 @@ const DayCard = ({ dayData, storageKey, onSaveDay, prevDayKegiatan }) => {
     };
     const updated = [apelPagi, ...kegiatan];
     setKegiatan(updated);
-    if (isSaved) setModifiedAfterSave(true);
+    markDirty();
     persistDraft(updated);
+    setShowMore(false);
   };
 
-  const handleCopyPrevDay = () => {
+  const applyCopyPrev = () => {
     if (!canCopyPrev) return;
     const copied = prevDayKegiatan
       .filter(k => k.namaKegiatan?.trim())
       .map(k => ({ ...k, id: generateId() }));
     setKegiatan(copied);
-    if (isSaved) setModifiedAfterSave(true);
+    markDirty();
     setSaveError('');
     persistDraft(copied);
+    setShowCopyConfirm(false);
+    setShowMore(false);
+    toast.success('Kegiatan disalin dari hari sebelumnya');
+  };
+
+  const handleCopyPrevDay = () => {
+    if (!canCopyPrev) return;
+    if (hasFilledKegiatan) {
+      setShowCopyConfirm(true);
+      return;
+    }
+    applyCopyPrev();
   };
 
   const handleUpdateKegiatan = (id, field, value) => {
     const updated = kegiatan.map(k => k.id === id ? { ...k, [field]: value } : k);
     setKegiatan(updated);
-    if (isSaved) setModifiedAfterSave(true);
+    markDirty();
     if (errors[id]?.[field]) {
       setErrors(prev => ({ ...prev, [id]: { ...prev[id], [field]: undefined } }));
     }
@@ -94,7 +140,7 @@ const DayCard = ({ dayData, storageKey, onSaveDay, prevDayKegiatan }) => {
   const handleDeleteKegiatan = (id) => {
     const updated = kegiatan.filter(k => k.id !== id);
     setKegiatan(updated);
-    if (isSaved) setModifiedAfterSave(true);
+    markDirty();
     setSaveError('');
     persistDraft(updated);
   };
@@ -107,7 +153,9 @@ const DayCard = ({ dayData, storageKey, onSaveDay, prevDayKegiatan }) => {
     setErrors({});
     setSaveError('');
     setShowDeleteAllConfirm(false);
+    setShowMore(false);
     onSaveDay(tanggal, { kegiatan: [], disimpan: false, totalMenitHari: 0 });
+    toast.success('Semua kegiatan hari ini dihapus');
   };
 
   const handleSave = () => {
@@ -116,7 +164,7 @@ const DayCard = ({ dayData, storageKey, onSaveDay, prevDayKegiatan }) => {
       setSaveError('Harap isi minimal 1 kegiatan sebelum menyimpan.');
       return;
     }
-    const nonApelFilled = filledKegiatan.filter(k => !k.isApelPagi);
+    const nonApelFilled = filledKegiatan.filter(k => !k.isApelPagi && k.namaKegiatan !== 'Apel Pagi');
     if (nonApelFilled.length === 0) {
       setSaveError('Harap isi minimal 1 kegiatan kerja selain Apel Pagi.');
       return;
@@ -127,60 +175,71 @@ const DayCard = ({ dayData, storageKey, onSaveDay, prevDayKegiatan }) => {
       setErrors(validationErrors);
       if (!expanded) setExpanded(true);
       setSaveError('');
+      toast.error('Ada kesalahan pada input. Periksa jam kegiatan.');
       return;
     }
+
+    const totalMenit = calcTotalHariMinutes(kegiatan);
     setSaveError('');
     setErrors({});
-    setShowConfirm(true);
-  };
-
-  const confirmSave = () => {
-    const totalMenit = calcTotalHariMinutes(kegiatan);
     setIsSaved(true);
     setTotalMenitHari(totalMenit);
     setModifiedAfterSave(false);
-    setShowConfirm(false);
     setExpanded(false);
     onSaveDay(tanggal, { kegiatan, disimpan: true, totalMenitHari: totalMenit });
+    toast.success(`Kegiatan ${tanggal} tersimpan`);
   };
 
   const hasErrors = Object.values(errors).some(e => e && Object.values(e).some(Boolean));
+  const statusLabel = isSaved && !modifiedAfterSave
+    ? 'tersimpan'
+    : hasFilledKegiatan || modifiedAfterSave
+      ? (isSaved && modifiedAfterSave ? 'diubah' : 'draf')
+      : null;
 
   return (
     <>
-      <div className={`bg-white rounded-2xl border mb-2.5 overflow-hidden transition-all ${
-        expanded ? 'border-blue-200 shadow-md' : 'border-gray-200 shadow-sm'
-      }`}>
-        {/* Card Header */}
+      <div
+        id={`day-${tanggal}`}
+        className={`bg-white rounded-2xl border mb-2.5 overflow-hidden transition-all scroll-mt-36 ${
+          expanded ? 'border-blue-200 shadow-md' : 'border-gray-200 shadow-sm'
+        }`}
+      >
         <button
+          type="button"
           className="w-full px-4 py-3 flex items-center justify-between active:bg-gray-50 transition-colors"
           onClick={() => setExpanded(e => !e)}
           data-testid={`day-card-header-${tanggal}`}
         >
-          <div className="flex items-center gap-3">
-            <div className={`w-9 h-9 rounded-xl flex items-center justify-center text-sm font-bold ${
+          <div className="flex items-center gap-3 min-w-0">
+            <div className={`w-9 h-9 rounded-xl flex items-center justify-center text-sm font-bold flex-shrink-0 ${
               isSaved && !modifiedAfterSave ? 'bg-blue-900 text-white' :
               weekend ? 'bg-orange-100 text-orange-600' : 'bg-gray-100 text-gray-700'
             }`}>
               {dayNum}
             </div>
-            <div className="text-left">
-              <div className="flex items-center gap-1.5">
+            <div className="text-left min-w-0">
+              <div className="flex items-center gap-1.5 flex-wrap">
                 <span className="text-sm font-medium text-gray-800">{dayName}</span>
                 {weekend && (
                   <span className="text-xs px-1.5 py-0.5 bg-orange-100 text-orange-600 rounded-full font-medium">Libur</span>
                 )}
-                {isSaved && !modifiedAfterSave && (
-                  <CheckCircle2 size={13} className="text-teal-500" />
+                {statusLabel === 'tersimpan' && (
+                  <span className="text-xs px-1.5 py-0.5 bg-teal-50 text-teal-700 rounded-full font-medium flex items-center gap-0.5">
+                    <CheckCircle2 size={11} /> Tersimpan
+                  </span>
+                )}
+                {statusLabel === 'draf' && (
+                  <span className="text-xs px-1.5 py-0.5 bg-amber-50 text-amber-700 rounded-full font-medium">Draf</span>
+                )}
+                {statusLabel === 'diubah' && (
+                  <span className="text-xs px-1.5 py-0.5 bg-orange-50 text-orange-600 rounded-full font-medium">Belum disimpan</span>
                 )}
               </div>
               <span className="text-xs text-gray-400">{tanggal}</span>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            {modifiedAfterSave && (
-              <span className="text-xs text-orange-500 font-medium">Belum disimpan</span>
-            )}
+          <div className="flex items-center gap-2 flex-shrink-0">
             {isSaved && !modifiedAfterSave && totalMenitHari > 0 && (
               <span className="text-xs font-semibold text-blue-900">{formatDurationText(totalMenitHari)}</span>
             )}
@@ -192,10 +251,8 @@ const DayCard = ({ dayData, storageKey, onSaveDay, prevDayKegiatan }) => {
           </div>
         </button>
 
-        {/* Expanded Content */}
         {expanded && (
           <div className="px-4 pb-4 border-t border-gray-100">
-            {/* Activity list */}
             <div className="mt-3 space-y-2">
               {kegiatan.length === 0 && (
                 <div className="text-center py-5 text-sm text-gray-400 bg-gray-50 rounded-xl">
@@ -213,9 +270,9 @@ const DayCard = ({ dayData, storageKey, onSaveDay, prevDayKegiatan }) => {
               ))}
             </div>
 
-            {/* Action buttons */}
             <div className="flex gap-2 mt-3 flex-wrap">
               <button
+                type="button"
                 onClick={handleAddKegiatan}
                 className="flex items-center gap-1.5 px-3 py-2 text-sm text-blue-700 bg-blue-50 rounded-xl hover:bg-blue-100 active:scale-95 transition-all font-medium"
                 data-testid={`add-kegiatan-btn-${tanggal}`}
@@ -223,39 +280,55 @@ const DayCard = ({ dayData, storageKey, onSaveDay, prevDayKegiatan }) => {
                 <Plus size={15} />
                 Tambah Kegiatan
               </button>
-              {!hasApelPagi && !noApelPagiDay && (
-                <button
-                  onClick={handleAddApelPagi}
-                  className="flex items-center gap-1.5 px-3 py-2 text-sm text-teal-700 bg-teal-50 rounded-xl hover:bg-teal-100 active:scale-95 transition-all font-medium"
-                  data-testid={`add-apel-pagi-btn-${tanggal}`}
-                >
-                  <Bell size={15} />
-                  + Apel Pagi
-                </button>
-              )}
-              {canCopyPrev && (
-                <button
-                  onClick={handleCopyPrevDay}
-                  className="flex items-center gap-1.5 px-3 py-2 text-sm text-indigo-700 bg-indigo-50 rounded-xl hover:bg-indigo-100 active:scale-95 transition-all font-medium"
-                  data-testid={`copy-prev-day-btn-${tanggal}`}
-                >
-                  <Copy size={15} />
-                  Salin Hari Sebelumnya
-                </button>
-              )}
-              {kegiatan.length > 0 && (
-                <button
-                  onClick={() => setShowDeleteAllConfirm(true)}
-                  className="flex items-center gap-1.5 px-3 py-2 text-sm text-red-600 bg-red-50 rounded-xl hover:bg-red-100 active:scale-95 transition-all font-medium"
-                  data-testid={`delete-all-btn-${tanggal}`}
-                >
-                  <Trash2 size={15} />
-                  Hapus Semua
-                </button>
-              )}
+              <button
+                type="button"
+                onClick={() => setShowMore(v => !v)}
+                className="flex items-center gap-1.5 px-3 py-2 text-sm text-gray-600 bg-gray-100 rounded-xl hover:bg-gray-200 active:scale-95 transition-all font-medium"
+                data-testid={`more-actions-btn-${tanggal}`}
+              >
+                <MoreHorizontal size={15} />
+                Lainnya
+              </button>
             </div>
 
-            {/* Save error warning */}
+            {showMore && (
+              <div className="mt-2 flex flex-wrap gap-2 p-2 bg-gray-50 rounded-xl border border-gray-100">
+                {!hasApelPagi && !noApelPagiDay && (
+                  <button
+                    type="button"
+                    onClick={handleAddApelPagi}
+                    className="flex items-center gap-1.5 px-3 py-2 text-sm text-teal-700 bg-teal-50 rounded-xl hover:bg-teal-100 active:scale-95 transition-all font-medium"
+                    data-testid={`add-apel-pagi-btn-${tanggal}`}
+                  >
+                    <Bell size={15} />
+                    + Apel Pagi
+                  </button>
+                )}
+                {canCopyPrev && (
+                  <button
+                    type="button"
+                    onClick={handleCopyPrevDay}
+                    className="flex items-center gap-1.5 px-3 py-2 text-sm text-indigo-700 bg-indigo-50 rounded-xl hover:bg-indigo-100 active:scale-95 transition-all font-medium"
+                    data-testid={`copy-prev-day-btn-${tanggal}`}
+                  >
+                    <Copy size={15} />
+                    Salin Hari Sebelumnya
+                  </button>
+                )}
+                {kegiatan.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setShowDeleteAllConfirm(true)}
+                    className="flex items-center gap-1.5 px-3 py-2 text-sm text-red-600 bg-red-50 rounded-xl hover:bg-red-100 active:scale-95 transition-all font-medium"
+                    data-testid={`delete-all-btn-${tanggal}`}
+                  >
+                    <Trash2 size={15} />
+                    Hapus Semua
+                  </button>
+                )}
+              </div>
+            )}
+
             {(hasErrors || saveError) && (
               <div className="mt-3 px-3 py-2 bg-red-50 rounded-xl border border-red-200 space-y-0.5">
                 {saveError && <p className="text-xs text-red-600 font-medium">{saveError}</p>}
@@ -263,14 +336,12 @@ const DayCard = ({ dayData, storageKey, onSaveDay, prevDayKegiatan }) => {
               </div>
             )}
 
-            {/* Daily total when saved */}
             {isSaved && !modifiedAfterSave && totalMenitHari > 0 && (
               <div className="mt-3 text-sm text-gray-600 px-1">
                 Total hari ini: <span className="font-semibold text-gray-900">{formatDurationText(totalMenitHari)}</span>
               </div>
             )}
 
-            {/* Save Button / Saved State Display */}
             {isSaved && !modifiedAfterSave ? (
               <div className="mt-3 w-full h-12 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 bg-teal-50 text-teal-700 border border-teal-200">
                 <CheckCircle2 size={16} />
@@ -278,8 +349,9 @@ const DayCard = ({ dayData, storageKey, onSaveDay, prevDayKegiatan }) => {
               </div>
             ) : hasFilledKegiatan ? (
               <button
+                type="button"
                 onClick={handleSave}
-                className={`mt-3 w-full h-12 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 transition-all active:scale-98 ${
+                className={`mt-3 w-full h-12 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 transition-all active:scale-[0.99] ${
                   modifiedAfterSave
                     ? 'bg-orange-500 text-white hover:bg-orange-600'
                     : 'bg-blue-900 text-white hover:bg-blue-800'
@@ -294,25 +366,23 @@ const DayCard = ({ dayData, storageKey, onSaveDay, prevDayKegiatan }) => {
         )}
       </div>
 
-      {/* Save Confirmation */}
-      <AlertDialog open={showConfirm} onOpenChange={setShowConfirm}>
+      <AlertDialog open={showCopyConfirm} onOpenChange={setShowCopyConfirm}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Simpan Kegiatan?</AlertDialogTitle>
+            <AlertDialogTitle>Timpa kegiatan hari ini?</AlertDialogTitle>
             <AlertDialogDescription>
-              Simpan kegiatan hari {tanggal}? Data tetap bisa diedit setelahnya.
+              Salin dari hari sebelumnya akan mengganti semua isian yang sudah ada pada {tanggal}.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Batal</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmSave} data-testid={`confirm-save-btn-${tanggal}`}>
-              Ya, Simpan
+            <AlertDialogAction onClick={applyCopyPrev} data-testid={`confirm-copy-prev-btn-${tanggal}`}>
+              Ya, Salin
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Delete All Confirmation */}
       <AlertDialog open={showDeleteAllConfirm} onOpenChange={setShowDeleteAllConfirm}>
         <AlertDialogContent>
           <AlertDialogHeader>

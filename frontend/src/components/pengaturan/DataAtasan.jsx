@@ -1,30 +1,16 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Users } from 'lucide-react';
 
-const SETTINGS_KEY = 'settings';
-
-function loadSettings() {
-  try {
-    const raw = localStorage.getItem(SETTINGS_KEY);
-    return raw ? JSON.parse(raw) : null;
-  } catch { return null; }
-}
-
-function saveSettings(data) {
-  try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(data)); } catch {}
-}
-
-const DataAtasan = () => {
-  const init = loadSettings()?.atasan || { nama: '', nip: '', jabatan: '' };
-  const [form, setForm] = useState(init);
-
-  const handleBlur = (field, value) => {
-    const current = loadSettings() || { pegawai: {}, atasan: {}, headerDokumen: {} };
-    current.atasan = { ...current.atasan, [field]: value };
-    saveSettings(current);
+const DataAtasan = ({ value = {}, onChange }) => {
+  const form = {
+    nama: value.nama || '',
+    nip: value.nip || '',
+    jabatan: value.jabatan || '',
   };
 
-  const update = (field, value) => setForm(prev => ({ ...prev, [field]: value }));
+  const update = (field, next) => {
+    onChange?.({ ...form, [field]: next });
+  };
 
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-4 mb-4">
@@ -41,8 +27,7 @@ const DataAtasan = () => {
           <input
             type="text"
             value={form.nama}
-            onChange={e => update('nama', e.target.value)}
-            onBlur={e => handleBlur('nama', e.target.value)}
+            onChange={(e) => update('nama', e.target.value)}
             placeholder="Contoh: HARTADI, S.T."
             className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 bg-gray-50 transition-all"
             data-testid="atasan-nama"
@@ -53,8 +38,7 @@ const DataAtasan = () => {
           <input
             type="text"
             value={form.nip}
-            onChange={e => update('nip', e.target.value)}
-            onBlur={e => handleBlur('nip', e.target.value)}
+            onChange={(e) => update('nip', e.target.value)}
             placeholder="Contoh: 19811104 201001 1 018"
             className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 bg-gray-50 transition-all"
             data-testid="atasan-nip"
@@ -64,8 +48,7 @@ const DataAtasan = () => {
           <label className="block text-xs font-medium text-gray-500 mb-1">Jabatan Atasan</label>
           <textarea
             value={form.jabatan}
-            onChange={e => update('jabatan', e.target.value)}
-            onBlur={e => handleBlur('jabatan', e.target.value)}
+            onChange={(e) => update('jabatan', e.target.value)}
             placeholder="Contoh: Kepala UPT Balai Pengelolaan Alat..."
             rows={2}
             className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 bg-gray-50 transition-all resize-none"
