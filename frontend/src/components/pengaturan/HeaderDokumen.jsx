@@ -1,9 +1,54 @@
 import React, { useRef } from 'react';
 import { Building2, Upload, X } from 'lucide-react';
 
+/**
+ * Flatten alpha + strip letterboxing marks so PDF/UI don't show gray/boxed edges.
+ * Transparent areas become white (same as PDF page). Aspect ratio is kept.
+ */
+function normalizeLogo(dataUrl) {
+  return new Promise((resolve, reject) => {
+    const img = new window.Image();
+    img.onload = () => {
+      try {
+        const maxSide = 480;
+        let w = img.naturalWidth || img.width;
+        let h = img.naturalHeight || img.height;
+        if (!w || !h) {
+          resolve({ dataUrl, width: 55, height: 55 });
+          return;
+        }
+        const scale = Math.min(1, maxSide / Math.max(w, h));
+        w = Math.max(1, Math.round(w * scale));
+        h = Math.max(1, Math.round(h * scale));
+
+        const canvas = document.createElement('canvas');
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        // White page background — no transparent “box” edges in PDF renderers
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillRect(0, 0, w, h);
+        ctx.drawImage(img, 0, 0, w, h);
+
+        resolve({
+          dataUrl: canvas.toDataURL('image/jpeg', 0.92),
+          width: w,
+          height: h,
+        });
+      } catch (err) {
+        reject(err);
+      }
+    };
+    img.onerror = () => reject(new Error('Gagal memuat logo'));
+    img.src = dataUrl;
+  });
+}
+
 const HeaderDokumen = ({ value = {}, onChange }) => {
   const form = {
     logoBase64: value.logoBase64 || null,
+    logoWidth: value.logoWidth || null,
+    logoHeight: value.logoHeight || null,
     namaDinas: value.namaDinas || '',
     kota: value.kota || '',
   };
@@ -13,18 +58,33 @@ const HeaderDokumen = ({ value = {}, onChange }) => {
     onChange?.({ ...form, [field]: next });
   };
 
+  const patch = (partial) => {
+    onChange?.({ ...form, ...partial });
+  };
+
   const handleLogoUpload = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = (ev) => {
-      update('logoBase64', ev.target.result);
+    reader.onload = async (ev) => {
+      try {
+        const raw = ev.target.result;
+        const { dataUrl, width, height } = await normalizeLogo(raw);
+        patch({
+          logoBase64: dataUrl,
+          logoWidth: width,
+          logoHeight: height,
+        });
+      } catch {
+        // Fallback: store original if canvas fails
+        patch({ logoBase64: ev.target.result, logoWidth: null, logoHeight: null });
+      }
     };
     reader.readAsDataURL(file);
   };
 
   const removeLogo = () => {
-    update('logoBase64', null);
+    patch({ logoBase64: null, logoWidth: null, logoHeight: null });
     if (fileRef.current) fileRef.current.value = '';
   };
 
@@ -41,14 +101,20 @@ const HeaderDokumen = ({ value = {}, onChange }) => {
       <div className="mb-3">
         <label className="block text-xs font-medium text-gray-500 mb-1">Logo Dinas (opsional)</label>
         {form.logoBase64 ? (
-          <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl border border-gray-200">
-            <img src={form.logoBase64} alt="Logo" className="w-12 h-12 object-contain" />
+          <div className="flex items-center gap-3 py-1">
+            <img
+              src={form.logoBase64}
+              alt="Logo"
+              className="h-14 w-auto max-w-[7rem] object-contain select-none"
+              style={{ backgroundColor: 'transparent' }}
+            />
             <span className="text-sm text-gray-600 flex-1">Logo terpasang</span>
             <button
               type="button"
               onClick={removeLogo}
-              className="text-red-400 hover:text-red-600"
+              className="text-red-400 hover:text-red-600 p-2 rounded-lg hover:bg-red-50"
               data-testid="remove-logo-btn"
+              aria-label="Hapus logo"
             >
               <X size={16} />
             </button>

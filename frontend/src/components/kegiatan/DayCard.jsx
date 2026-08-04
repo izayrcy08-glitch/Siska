@@ -12,7 +12,7 @@ import {
   AlertDialogFooter, AlertDialogHeader, AlertDialogTitle
 } from '../ui/alert-dialog';
 import {
-  ChevronDown, ChevronUp, Plus, Bell, Save, CheckCircle2, Copy, Trash2, MoreHorizontal
+  ChevronDown, ChevronUp, Plus, Bell, Save, CheckCircle2, Copy, Trash2
 } from 'lucide-react';
 
 const DayCard = ({
@@ -33,7 +33,6 @@ const DayCard = ({
   const [showCopyConfirm, setShowCopyConfirm] = useState(false);
   const [modifiedAfterSave, setModifiedAfterSave] = useState(false);
   const [saveError, setSaveError] = useState('');
-  const [showMore, setShowMore] = useState(false);
 
   const dayName = getDayName(tanggal);
   const weekend = isWeekend(tanggal);
@@ -101,7 +100,6 @@ const DayCard = ({
     setKegiatan(updated);
     markDirty();
     persistDraft(updated);
-    setShowMore(false);
   };
 
   const applyCopyPrev = () => {
@@ -114,7 +112,6 @@ const DayCard = ({
     setSaveError('');
     persistDraft(copied);
     setShowCopyConfirm(false);
-    setShowMore(false);
     toast.success('Kegiatan disalin dari hari sebelumnya');
   };
 
@@ -153,7 +150,6 @@ const DayCard = ({
     setErrors({});
     setSaveError('');
     setShowDeleteAllConfirm(false);
-    setShowMore(false);
     onSaveDay(tanggal, { kegiatan: [], disimpan: false, totalMenitHari: 0 });
     toast.success('Semua kegiatan hari ini dihapus');
   };
@@ -280,54 +276,40 @@ const DayCard = ({
                 <Plus size={15} />
                 Tambah Kegiatan
               </button>
-              <button
-                type="button"
-                onClick={() => setShowMore(v => !v)}
-                className="flex items-center gap-1.5 px-3 py-2 text-sm text-gray-600 bg-gray-100 rounded-xl hover:bg-gray-200 active:scale-95 transition-all font-medium"
-                data-testid={`more-actions-btn-${tanggal}`}
-              >
-                <MoreHorizontal size={15} />
-                Lainnya
-              </button>
+              {!hasApelPagi && !noApelPagiDay && (
+                <button
+                  type="button"
+                  onClick={handleAddApelPagi}
+                  className="flex items-center gap-1.5 px-3 py-2 text-sm text-teal-700 bg-teal-50 rounded-xl hover:bg-teal-100 active:scale-95 transition-all font-medium"
+                  data-testid={`add-apel-pagi-btn-${tanggal}`}
+                >
+                  <Bell size={15} />
+                  + Apel Pagi
+                </button>
+              )}
+              {canCopyPrev && (
+                <button
+                  type="button"
+                  onClick={handleCopyPrevDay}
+                  className="flex items-center gap-1.5 px-3 py-2 text-sm text-indigo-700 bg-indigo-50 rounded-xl hover:bg-indigo-100 active:scale-95 transition-all font-medium"
+                  data-testid={`copy-prev-day-btn-${tanggal}`}
+                >
+                  <Copy size={15} />
+                  Salin Hari Sebelumnya
+                </button>
+              )}
+              {kegiatan.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setShowDeleteAllConfirm(true)}
+                  className="flex items-center gap-1.5 px-3 py-2 text-sm text-red-600 bg-red-50 rounded-xl hover:bg-red-100 active:scale-95 transition-all font-medium"
+                  data-testid={`delete-all-btn-${tanggal}`}
+                >
+                  <Trash2 size={15} />
+                  Hapus Semua
+                </button>
+              )}
             </div>
-
-            {showMore && (
-              <div className="mt-2 flex flex-wrap gap-2 p-2 bg-gray-50 rounded-xl border border-gray-100">
-                {!hasApelPagi && !noApelPagiDay && (
-                  <button
-                    type="button"
-                    onClick={handleAddApelPagi}
-                    className="flex items-center gap-1.5 px-3 py-2 text-sm text-teal-700 bg-teal-50 rounded-xl hover:bg-teal-100 active:scale-95 transition-all font-medium"
-                    data-testid={`add-apel-pagi-btn-${tanggal}`}
-                  >
-                    <Bell size={15} />
-                    + Apel Pagi
-                  </button>
-                )}
-                {canCopyPrev && (
-                  <button
-                    type="button"
-                    onClick={handleCopyPrevDay}
-                    className="flex items-center gap-1.5 px-3 py-2 text-sm text-indigo-700 bg-indigo-50 rounded-xl hover:bg-indigo-100 active:scale-95 transition-all font-medium"
-                    data-testid={`copy-prev-day-btn-${tanggal}`}
-                  >
-                    <Copy size={15} />
-                    Salin Hari Sebelumnya
-                  </button>
-                )}
-                {kegiatan.length > 0 && (
-                  <button
-                    type="button"
-                    onClick={() => setShowDeleteAllConfirm(true)}
-                    className="flex items-center gap-1.5 px-3 py-2 text-sm text-red-600 bg-red-50 rounded-xl hover:bg-red-100 active:scale-95 transition-all font-medium"
-                    data-testid={`delete-all-btn-${tanggal}`}
-                  >
-                    <Trash2 size={15} />
-                    Hapus Semua
-                  </button>
-                )}
-              </div>
-            )}
 
             {(hasErrors || saveError) && (
               <div className="mt-3 px-3 py-2 bg-red-50 rounded-xl border border-red-200 space-y-0.5">

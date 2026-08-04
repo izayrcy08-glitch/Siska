@@ -37,10 +37,13 @@ const s = StyleSheet.create({
     alignItems: 'center',
     borderBottomWidth: 1,
     borderColor: '#000000',
-    paddingBottom: 5,
+    paddingBottom: 6,
     marginBottom: 6,
   },
-  logoImg: { width: 55, height: 55, objectFit: 'contain', marginRight: 8 },
+  // No border/background on logo wrapper — avoids “marks” on each side
+  logoWrap: {
+    marginRight: 10,
+  },
   namaInstansi: {
     fontFamily: 'Times-Bold', fontSize: 11, flex: 1, textAlign: 'center',
   },
@@ -189,6 +192,22 @@ const LaporanPDF = ({ monthData, settings }) => {
   const kota = headerDokumen?.kota || '';
   const showHeader = !!(headerDokumen?.logoBase64 || headerDokumen?.namaDinas);
 
+  // Proportional logo size (no forced square letterbox that looks like edge marks)
+  const LOGO_MAX_H = 48;
+  const LOGO_MAX_W = 72;
+  let logoW = LOGO_MAX_H;
+  let logoH = LOGO_MAX_H;
+  if (headerDokumen?.logoWidth && headerDokumen?.logoHeight) {
+    const aspect = headerDokumen.logoWidth / headerDokumen.logoHeight;
+    if (aspect >= 1) {
+      logoW = Math.min(LOGO_MAX_W, LOGO_MAX_H * aspect);
+      logoH = logoW / aspect;
+    } else {
+      logoH = LOGO_MAX_H;
+      logoW = logoH * aspect;
+    }
+  }
+
   const savedDays = hari.filter(d => d.disimpan && d.kegiatan?.some(k => k.namaKegiatan?.trim()));
 
   const grandTotalMenit = savedDays.reduce((sum, d) => sum + (d.totalMenitHari || 0), 0);
@@ -207,7 +226,12 @@ const LaporanPDF = ({ monthData, settings }) => {
         {showHeader && (
           <View style={s.logoSection}>
             {headerDokumen?.logoBase64 && (
-              <Image src={headerDokumen.logoBase64} style={s.logoImg} />
+              <View style={s.logoWrap}>
+                <Image
+                  src={headerDokumen.logoBase64}
+                  style={{ width: logoW, height: logoH }}
+                />
+              </View>
             )}
             {headerDokumen?.namaDinas && (
               <Text style={s.namaInstansi}>{headerDokumen.namaDinas.toUpperCase()}</Text>

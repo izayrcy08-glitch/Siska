@@ -24,7 +24,7 @@ export function defaultSettings() {
   return {
     pegawai: { nama: '', nip: '', jabatan: '' },
     atasan: { nama: '', nip: '', jabatan: '' },
-    headerDokumen: { logoBase64: null, namaDinas: '', kota: '' },
+    headerDokumen: { logoBase64: null, logoWidth: null, logoHeight: null, namaDinas: '', kota: '' },
   };
 }
 
