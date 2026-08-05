@@ -20,6 +20,16 @@ const COL = {
   PARAF: '16%',
 };
 
+// Nested activity columns as % of the 52% middle stack (ket+qty+mulai+selesai+lama)
+const MID = {
+  WRAP: '52%',
+  KETERANGAN: `${(18 / 52) * 100}%`,
+  KUANTITAS: `${(9 / 52) * 100}%`,
+  MULAI: `${(8 / 52) * 100}%`,
+  SELESAI: `${(8 / 52) * 100}%`,
+  LAMA: `${(9 / 52) * 100}%`,
+};
+
 const s = StyleSheet.create({
   page: {
     fontFamily: 'Times-Roman',
@@ -101,10 +111,13 @@ const s = StyleSheet.create({
   grandTotalCell: {
     justifyContent: 'center', alignItems: 'center',
     backgroundColor: '#F3F4F6',
-    borderRightWidth: 1, borderBottomWidth: 1, borderColor: '#000000',
-    padding: 4,
+    borderRightWidth: 1, borderBottomWidth: 1, borderTopWidth: 2,
+    borderColor: '#000000',
+    paddingTop: 8, paddingBottom: 8, paddingLeft: 4, paddingRight: 4,
   },
-  grandTotalText: { fontFamily: 'Times-Bold', fontSize: 9, textAlign: 'center' },
+  grandTotalText: {
+    fontFamily: 'Times-Bold', fontSize: 9, textAlign: 'center',
+  },
 
   // === FOOTER ===
   footerRow: { flexDirection: 'row', marginTop: 20 },
@@ -182,6 +195,12 @@ const formatDateSlashed = (dateStr) => {
   return `${parts[2]}/${parts[1]}/${parts[0]}`;
 };
 
+const formatJamMenit = (totalMenit = 0) => {
+  const jam = Math.floor(totalMenit / 60);
+  const menit = totalMenit % 60;
+  return `${jam} Jam ${menit} Menit`;
+};
+
 // ============ MAIN COMPONENT ============
 const LaporanPDF = ({ monthData, settings }) => {
   const { pegawai = {}, atasan = {}, headerDokumen = {} } = settings || {};
@@ -211,11 +230,6 @@ const LaporanPDF = ({ monthData, settings }) => {
   const savedDays = hari.filter(d => d.disimpan && d.kegiatan?.some(k => k.namaKegiatan?.trim()));
 
   const grandTotalMenit = savedDays.reduce((sum, d) => sum + (d.totalMenitHari || 0), 0);
-  const grandTotalJam = Math.floor(grandTotalMenit / 60);
-  const grandTotalSisa = grandTotalMenit % 60;
-  const grandTotalText = grandTotalSisa === 0
-    ? `${grandTotalJam} Jam`
-    : `${grandTotalJam} Jam ${grandTotalSisa} Menit`;
 
   const footerDate = `${lastDay} ${namaBulan} ${tahun}`;
 
@@ -292,72 +306,44 @@ const LaporanPDF = ({ monthData, settings }) => {
           {savedDays.map((day, dayIdx) => {
             const filled = day.kegiatan.filter(k => k.namaKegiatan?.trim());
             const totalMenitHari = day.totalMenitHari || 0;
-            const totalJamHari = Math.floor(totalMenitHari / 60);
-            const totalMenitSisa = totalMenitHari % 60;
-            const totalText = totalMenitSisa === 0
-              ? `Subtotal: ${totalJamHari} Jam`
-              : `Subtotal: ${totalJamHari} Jam ${totalMenitSisa} Menit`;
 
             const tanggalFormatted = formatDateSlashed(day.tanggal);
 
             return (
               <React.Fragment key={day.tanggal}>
-                {filled.map((k, kIdx) => {
-                  const durMin = calcDurationMinutes(k.jamMulai, k.jamSelesai);
-                  const durStr = durMin !== null ? minutesToHHMMSS(durMin) : '—';
-                  const mulaiStr = k.jamMulai ? k.jamMulai + ':00' : '—';
-                  const selesaiStr = k.jamSelesai ? k.jamSelesai + ':00' : '—';
+                <View style={s.tableRow} wrap={false}>
+                  <View style={[s.cell, { width: COL.NO }]}>
+                    <Text style={s.cellText}>{String(dayIdx + 1)}</Text>
+                  </View>
+                  <View style={[s.cell, { width: COL.TANGGAL }]}>
+                    <Text style={s.cellText}>{tanggalFormatted}</Text>
+                  </View>
+                  <View style={[s.cell, { width: COL.KEGIATAN }]}>
+                    <Text style={s.cellText}>{pegawai?.jabatan || ''}</Text>
+                  </View>
+                  <View style={{ width: MID.WRAP }}>
+                    {filled.map((k) => {
+                      const durMin = calcDurationMinutes(k.jamMulai, k.jamSelesai);
+                      const durStr = durMin !== null ? minutesToHHMMSS(durMin) : '—';
+                      const mulaiStr = k.jamMulai ? k.jamMulai + ':00' : '—';
+                      const selesaiStr = k.jamSelesai ? k.jamSelesai + ':00' : '—';
+                      return (
+                        <View key={k.id} style={s.tableRow}>
+                          <Cell w={MID.KETERANGAN}>{k.namaKegiatan}</Cell>
+                          <Cell w={MID.KUANTITAS}>1 Keg</Cell>
+                          <Cell w={MID.MULAI}>{mulaiStr}</Cell>
+                          <Cell w={MID.SELESAI}>{selesaiStr}</Cell>
+                          <Cell w={MID.LAMA}>{durStr}</Cell>
+                        </View>
+                      );
+                    })}
+                  </View>
+                  <View style={[s.cell, { width: COL.PARAF }]}>
+                    <Text style={s.cellText}>{''}</Text>
+                  </View>
+                </View>
 
-                  const isFirst = kIdx === 0;
-                  const isLast = kIdx === filled.length - 1;
-
-                  // Merge logic for No, Tanggal, Jabatan columns:
-                  // First row: show content, no bottom border
-                  // Middle rows: empty, no top border, no bottom border (if not last)
-                  // Last row: empty, no top border, with bottom border (or regular if only 1 row)
-
-                  const mergeStyleNo = isFirst ? s.cellMergeTop : (isLast ? s.cellMergeCont : s.cellMergeCont);
-                  const mergeStyleTgl = isFirst ? s.cellMergeTop : (isLast ? s.cellMergeCont : s.cellMergeCont);
-                  const mergeStyleJab = isFirst ? s.cellMergeTop : (isLast ? s.cellMergeCont : s.cellMergeCont);
-
-                  // For middle rows (not first, not last), also remove bottom border
-                  const noBottom = !isFirst && !isLast;
-                  const finalStyleNo = noBottom
-                    ? { ...mergeStyleNo, borderBottomWidth: 0 }
-                    : mergeStyleNo;
-                  const finalStyleTgl = noBottom
-                    ? { ...mergeStyleTgl, borderBottomWidth: 0 }
-                    : mergeStyleTgl;
-                  const finalStyleJab = noBottom
-                    ? { ...mergeStyleJab, borderBottomWidth: 0 }
-                    : mergeStyleJab;
-
-                  return (
-                    <View key={k.id} style={s.tableRow} wrap={false}>
-                      {/* No — merge vertikal */}
-                      <View style={[finalStyleNo, { width: COL.NO }]}>
-                        <Text style={s.cellText}>{isFirst ? String(dayIdx + 1) : ''}</Text>
-                      </View>
-                      {/* Tanggal — merge vertikal */}
-                      <View style={[finalStyleTgl, { width: COL.TANGGAL }]}>
-                        <Text style={s.cellText}>{isFirst ? tanggalFormatted : ''}</Text>
-                      </View>
-                      {/* Kegiatan Tugas Jabatan — merge vertikal, hanya sekali */}
-                      <View style={[finalStyleJab, { width: COL.KEGIATAN }]}>
-                        <Text style={s.cellText}>{isFirst ? (pegawai?.jabatan || '') : ''}</Text>
-                      </View>
-                      {/* Keterangan — nama kegiatan, tiap baris */}
-                      <Cell w={COL.KETERANGAN}>{k.namaKegiatan}</Cell>
-                      <Cell w={COL.KUANTITAS}>1 Keg</Cell>
-                      <Cell w={COL.MULAI}>{mulaiStr}</Cell>
-                      <Cell w={COL.SELESAI}>{selesaiStr}</Cell>
-                      <Cell w={COL.LAMA}>{durStr}</Cell>
-                      <Cell w={COL.PARAF}>{''}</Cell>
-                    </View>
-                  );
-                })}
-
-                {/* Total harian — colspan 7 kolom (Kegiatan s/d Lama) */}
+                {/* Total harian — di kolom paraf */}
                 <View style={s.tableRow} wrap={false}>
                   <View style={[s.cell, { width: COL.NO }]}>
                     <Text style={s.cellText}></Text>
@@ -365,26 +351,33 @@ const LaporanPDF = ({ monthData, settings }) => {
                   <View style={[s.cell, { width: COL.TANGGAL }]}>
                     <Text style={s.cellText}></Text>
                   </View>
-                  {/* Total colspan: KEGIATAN + KETERANGAN + KUANTITAS + MULAI + SELESAI + LAMA = 70% */}
-                  <View style={[s.cell, {
-                    width: '70%',
-                    justifyContent: 'center', alignItems: 'center',
-                  }]}>
-                    <Text style={s.boldCell}>{totalText}</Text>
+                  <View style={[s.cell, { width: '70%' }]}>
+                    <Text style={s.cellText}></Text>
                   </View>
                   <View style={[s.cell, { width: COL.PARAF }]}>
-                    <Text style={s.cellText}></Text>
+                    <Text style={s.boldCell}>{formatJamMenit(totalMenitHari)}</Text>
                   </View>
                 </View>
               </React.Fragment>
             );
           })}
 
-          {/* Total Bulanan — colspan semua 9 kolom */}
-          <View style={s.tableRow}>
-            <View style={[s.grandTotalCell, { width: '100%' }]}>
+          {/* Total bulanan — baris penutup lebih tinggi + garis atas tebal */}
+          <View style={s.tableRow} wrap={false}>
+            <View style={[s.grandTotalCell, { width: COL.NO }]}>
+              <Text style={s.cellText}></Text>
+            </View>
+            <View style={[s.grandTotalCell, { width: COL.TANGGAL }]}>
+              <Text style={s.cellText}></Text>
+            </View>
+            <View style={[s.grandTotalCell, { width: '70%' }]}>
               <Text style={s.grandTotalText}>
-                {`Total Jam Kerja Efektif Bulan ${namaBulan} ${tahun} : ${grandTotalText}`}
+                {`Total Jam Kerja Efektif Bulan ${namaBulan} ${tahun}`}
+              </Text>
+            </View>
+            <View style={[s.grandTotalCell, { width: COL.PARAF }]}>
+              <Text style={s.grandTotalText}>
+                {formatJamMenit(grandTotalMenit)}
               </Text>
             </View>
           </View>
