@@ -6,24 +6,16 @@ import TotalBulanan from '../components/kegiatan/TotalBulanan';
 import OnboardingCard from '../components/kegiatan/OnboardingCard';
 import PreviewModal from '../components/pdf/PreviewModal';
 import {
-  getStorageKey, generateEmptyMonthData, getDateString, isWeekend
+  getStorageKey, generateEmptyMonthData, getDateString
 } from '../utils/timeUtils';
 import {
   countMonthProgress,
-  dayFillStatus,
   dismissOnboarding,
   isOnboardingDismissed,
   isPDFReady as checkPDFReady,
   loadSettings,
   saveActivity,
 } from '../utils/storage';
-
-const FILTERS = [
-  { key: 'semua', label: 'Semua' },
-  { key: 'kerja', label: 'Kerja' },
-  { key: 'belum', label: 'Belum diisi' },
-  { key: 'tersimpan', label: 'Tersimpan' },
-];
 
 function migrateLegacyApelPagi(monthData) {
   if (!monthData?.hari) return { data: monthData, changed: false };
@@ -58,7 +50,6 @@ const KegiatanPage = ({ activeMonth, onMonthChange, onGoToSettings, dataVersion 
   const [monthData, setMonthData] = useState(null);
   const [showPreview, setShowPreview] = useState(false);
   const [settings, setSettings] = useState(() => loadSettings());
-  const [filter, setFilter] = useState('semua');
   const [focusDate, setFocusDate] = useState(null);
   const [showOnboarding, setShowOnboarding] = useState(() => !isOnboardingDismissed());
   const [pdfOpenedOnce, setPdfOpenedOnce] = useState(false);
@@ -153,16 +144,7 @@ const KegiatanPage = ({ activeMonth, onMonthChange, onGoToSettings, dataVersion 
       ? `${progress.tersimpan} tersimpan · ${progress.draft} draf · ${progress.kosong} kosong`
       : null;
 
-  const filteredHari = useMemo(() => {
-    if (!monthData?.hari) return [];
-    return monthData.hari.filter((day) => {
-      const status = dayFillStatus(day);
-      if (filter === 'kerja') return !isWeekend(day.tanggal);
-      if (filter === 'belum') return status === 'kosong' || status === 'draft';
-      if (filter === 'tersimpan') return status === 'tersimpan';
-      return true;
-    });
-  }, [monthData, filter]);
+  const hariList = monthData?.hari || [];
 
   const totalMenitBulan = monthData?.hari
     ?.filter(h => h.disimpan)
@@ -215,40 +197,24 @@ const KegiatanPage = ({ activeMonth, onMonthChange, onGoToSettings, dataVersion 
         />
       )}
 
-      {/* Filters */}
-      <div className="px-3 pt-3 flex gap-1.5 overflow-x-auto no-scrollbar">
-        {FILTERS.map((f) => {
-          const active = filter === f.key;
-          return (
-            <button
-              key={f.key}
-              type="button"
-              onClick={() => setFilter(f.key)}
-              data-testid={`filter-${f.key}`}
-              className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
-                active
-                  ? 'bg-blue-900 text-white border-blue-900'
-                  : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
-              }`}
-            >
-              {f.label}
-            </button>
-          );
-        })}
-      </div>
+      <TotalBulanan
+        bulan={activeMonth.bulan}
+        tahun={activeMonth.tahun}
+        totalMenitBulan={totalMenitBulan}
+        isPDFReady={pdfReady}
+        settings={freshSettings || settings}
+        draftCount={progress.draft}
+        savedDaysCount={savedDaysCount}
+        onPreviewPDF={handleOpenPreview}
+        onGoToSettings={onGoToSettings}
+      />
 
       <div className="px-3 pt-3">
         {!monthData && (
           <div className="text-center py-10 text-sm text-gray-400">Memuat data bulan...</div>
         )}
-        {monthData && filteredHari.length === 0 && (
-          <div className="text-center py-10 text-sm text-gray-400 bg-white rounded-2xl border border-gray-100">
-            Tidak ada hari yang cocok dengan filter ini.
-          </div>
-        )}
-        {filteredHari.map((dayData) => {
-          const idx = monthData.hari.findIndex((h) => h.tanggal === dayData.tanggal);
-          const prevDayKegiatan = idx > 0 ? (monthData.hari[idx - 1].kegiatan || null) : null;
+        {hariList.map((dayData, idx) => {
+          const prevDayKegiatan = idx > 0 ? (hariList[idx - 1].kegiatan || null) : null;
           return (
             <DayCard
               key={`${dayData.tanggal}-${dataVersion}`}
@@ -261,18 +227,6 @@ const KegiatanPage = ({ activeMonth, onMonthChange, onGoToSettings, dataVersion 
           );
         })}
       </div>
-
-      <TotalBulanan
-        bulan={activeMonth.bulan}
-        tahun={activeMonth.tahun}
-        totalMenitBulan={totalMenitBulan}
-        isPDFReady={pdfReady}
-        settings={freshSettings || settings}
-        draftCount={progress.draft}
-        savedDaysCount={savedDaysCount}
-        onPreviewPDF={handleOpenPreview}
-        onGoToSettings={onGoToSettings}
-      />
 
       {showPreview && (
         <PreviewModal

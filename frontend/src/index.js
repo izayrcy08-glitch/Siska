@@ -14,8 +14,22 @@ const queryClient = new QueryClient({
   },
 });
 
-// Registrasi Service Worker untuk PWA
+// Registrasi Service Worker untuk PWA (hanya production — hindari cache usang saat npm start)
 function registerServiceWorker() {
+  if (process.env.NODE_ENV !== "production") {
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.getRegistrations().then((registrations) => {
+        registrations.forEach((registration) => registration.unregister());
+      });
+      if (window.caches) {
+        caches.keys().then((keys) => {
+          keys.forEach((key) => caches.delete(key));
+        });
+      }
+    }
+    return;
+  }
+
   if ("serviceWorker" in navigator) {
     window.addEventListener("load", () => {
       navigator.serviceWorker
