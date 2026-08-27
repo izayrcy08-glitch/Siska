@@ -33,7 +33,7 @@ function registerServiceWorker() {
   if ("serviceWorker" in navigator) {
     window.addEventListener("load", () => {
       navigator.serviceWorker
-        .register("/service-worker.js?v=2")
+        .register("/service-worker.js?v=3")
         .then((registration) => {
           console.log("SW registered:", registration.scope);
 
@@ -69,11 +69,15 @@ function registerServiceWorker() {
 
 registerServiceWorker();
 
-const root = ReactDOM.createRoot(document.getElementById("root"));
-root.render(
-  <React.StrictMode>
-    <QueryClientProvider client={queryClient}>
-      <App />
-    </QueryClientProvider>
-  </React.StrictMode>,
-);
+if (window.__SISKA_HOLD_BOOT__) {
+  // Menunggu reload setelah service worker/cache localhost dibersihkan
+} else {
+  const root = ReactDOM.createRoot(document.getElementById("root"));
+  root.render(
+    <React.StrictMode>
+      <QueryClientProvider client={queryClient}>
+        <App />
+      </QueryClientProvider>
+    </React.StrictMode>,
+  );
+}

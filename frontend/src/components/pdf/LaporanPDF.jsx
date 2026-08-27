@@ -203,7 +203,11 @@ const formatJamMenit = (totalMenit = 0) => {
 
 // ============ MAIN COMPONENT ============
 const LaporanPDF = ({ monthData, settings }) => {
-  const { pegawai = {}, atasan = {}, headerDokumen = {} } = settings || {};
+  const { pegawai = {}, atasan = {}, atasanTandaTangan = {}, headerDokumen = {} } = settings || {};
+  const pejabatPenilai =
+    atasanTandaTangan?.nama?.trim() || atasanTandaTangan?.nip?.trim()
+      ? atasanTandaTangan
+      : atasan;
   const { bulan = 1, tahun = new Date().getFullYear(), hari = [] } = monthData || {};
 
   const namaBulan = BULAN_INDONESIA[bulan - 1];
@@ -390,8 +394,8 @@ const LaporanPDF = ({ monthData, settings }) => {
             {/* Placeholder teks transparan agar tinggi sejajar dengan tanggal di kanan */}
             <Text style={[s.footerDateText, { color: '#FFFFFF' }]}>.</Text>
             <Text style={s.footerLabel}>Pejabat Penilai,</Text>
-            <Text style={s.footerNameUnderline}>{atasan?.nama || ''}</Text>
-            <Text style={s.footerNIP}>NIP. {atasan?.nip || ''}</Text>
+            <Text style={s.footerNameUnderline}>{pejabatPenilai?.nama || ''}</Text>
+            <Text style={s.footerNIP}>NIP. {pejabatPenilai?.nip || ''}</Text>
           </View>
 
           {/* Kolom Kanan: Tanggal + Pegawai — posisi ~75% */}

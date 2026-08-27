@@ -11,23 +11,17 @@ import {
 } from '../components/ui/alert-dialog';
 import {
   buildExportPayload,
-  defaultSettings,
   downloadJson,
   importExportPayload,
   loadSettings,
+  normalizeSettings,
   removeActivity,
   saveSettings,
 } from '../utils/storage';
 import { BULAN_INDONESIA, getStorageKey } from '../utils/timeUtils';
 
 function mergeSettings(raw) {
-  const base = defaultSettings();
-  if (!raw) return base;
-  return {
-    pegawai: { ...base.pegawai, ...(raw.pegawai || {}) },
-    atasan: { ...base.atasan, ...(raw.atasan || {}) },
-    headerDokumen: { ...base.headerDokumen, ...(raw.headerDokumen || {}) },
-  };
+  return normalizeSettings(raw);
 }
 
 const PengaturanPage = ({ activeMonth, onDataChanged }) => {
@@ -144,8 +138,11 @@ const PengaturanPage = ({ activeMonth, onDataChanged }) => {
           onChange={(pegawai) => setForm((prev) => ({ ...prev, pegawai }))}
         />
         <DataAtasan
-          value={form.atasan}
-          onChange={(atasan) => setForm((prev) => ({ ...prev, atasan }))}
+          atasan={form.atasan}
+          atasanTandaTangan={form.atasanTandaTangan}
+          onChange={({ atasan, atasanTandaTangan }) =>
+            setForm((prev) => ({ ...prev, atasan, atasanTandaTangan }))
+          }
         />
         <HeaderDokumen
           value={form.headerDokumen}

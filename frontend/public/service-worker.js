@@ -1,14 +1,13 @@
 /* eslint-disable no-restricted-globals */
 
 // Bump versi ini setiap kali asset PWA (ikon/manifest) berubah
-const CACHE_NAME = 'siska-v2';
-const RUNTIME_CACHE = 'siska-runtime-v2';
+const CACHE_NAME = 'siska-v3';
+const RUNTIME_CACHE = 'siska-runtime-v3';
+const isLocalhost =
+  self.location.hostname === 'localhost' ||
+  self.location.hostname === '127.0.0.1';
 
-// Resource yang di-precache saat service worker di-install
-const PRECACHE_URLS = [
-  '/',
-  '/index.html',
-];
+const PRECACHE_URLS = ['/', '/index.html'];
 
 function isIconOrManifest(url) {
   try {
@@ -24,8 +23,20 @@ function isIconOrManifest(url) {
   }
 }
 
-// Install event: precache resource statis
+function isAppScriptOrStyle(url) {
+  try {
+    const path = new URL(url).pathname;
+    return path.startsWith('/static/js/') || path.startsWith('/static/css/');
+  } catch {
+    return false;
+  }
+}
+
 self.addEventListener('install', (event) => {
+  if (isLocalhost) {
+    event.waitUntil(self.skipWaiting());
+    return;
+  }
   event.waitUntil(
     caches
       .open(CACHE_NAME)
@@ -34,24 +45,29 @@ self.addEventListener('install', (event) => {
   );
 });
 
-// Activate event: hapus SEMUA cache lama (termasuk ikon lama di runtime cache)
 self.addEventListener('activate', (event) => {
-  const currentCaches = [CACHE_NAME, RUNTIME_CACHE];
   event.waitUntil(
-    caches
-      .keys()
-      .then((cacheNames) =>
-        cacheNames.filter((cacheName) => !currentCaches.includes(cacheName))
-      )
-      .then((cachesToDelete) =>
-        Promise.all(cachesToDelete.map((cacheToDelete) => caches.delete(cacheToDelete)))
-      )
-      .then(() => self.clients.claim())
+    (async () => {
+      const keys = await caches.keys();
+      // Di localhost: hapus SEMUA cache. Di production: hapus cache versi lama saja.
+      const toDelete = isLocalhost
+        ? keys
+        : keys.filter((name) => name !== CACHE_NAME && name !== RUNTIME_CACHE);
+      await Promise.all(toDelete.map((name) => caches.delete(name)));
+
+      if (isLocalhost) {
+        await self.registration.unregister();
+      }
+
+      await self.clients.claim();
+    })()
   );
 });
 
-// Fetch event
 self.addEventListener('fetch', (event) => {
+  // Jangan intersep apa pun di localhost — biarkan network murni
+  if (isLocalhost) return;
+
   if (
     event.request.method !== 'GET' ||
     !event.request.url.startsWith('http')
@@ -59,7 +75,6 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Ikon & manifest: selalu coba network dulu agar logo PWA tidak macet di cache lama
   if (isIconOrManifest(event.request.url)) {
     event.respondWith(networkFirst(event.request));
     return;
@@ -70,9 +85,17 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  // JS/CSS app: network-first agar update tidak tertahan cache lama
   if (
+    isAppScriptOrStyle(event.request.url) ||
     event.request.destination === 'script' ||
-    event.request.destination === 'style' ||
+    event.request.destination === 'style'
+  ) {
+    event.respondWith(networkFirst(event.request));
+    return;
+  }
+
+  if (
     event.request.destination === 'font' ||
     event.request.destination === 'image'
   ) {

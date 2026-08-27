@@ -1,3 +1,5 @@
+import { DEFAULT_ATASAN_TANDA_TANGAN } from '../constants/atasanPresets';
+
 const SETTINGS_KEY = 'settings';
 const ONBOARDING_KEY = 'siska_onboarding_dismissed';
 const EXPORT_VERSION = 1;
@@ -5,7 +7,8 @@ const EXPORT_VERSION = 1;
 export function loadSettings() {
   try {
     const raw = localStorage.getItem(SETTINGS_KEY);
-    return raw ? JSON.parse(raw) : null;
+    if (!raw) return null;
+    return normalizeSettings(JSON.parse(raw));
   } catch {
     return null;
   }
@@ -24,7 +27,23 @@ export function defaultSettings() {
   return {
     pegawai: { nama: '', nip: '', jabatan: '' },
     atasan: { nama: '', nip: '', jabatan: '' },
+    atasanTandaTangan: { ...DEFAULT_ATASAN_TANDA_TANGAN },
     headerDokumen: { logoBase64: null, logoWidth: null, logoHeight: null, namaDinas: '', kota: '' },
+  };
+}
+
+/** Gabungkan settings tersimpan dengan default (termasuk atasanTandaTangan baru). */
+export function normalizeSettings(raw) {
+  const base = defaultSettings();
+  if (!raw) return base;
+  return {
+    pegawai: { ...base.pegawai, ...(raw.pegawai || {}) },
+    atasan: { ...base.atasan, ...(raw.atasan || {}) },
+    atasanTandaTangan: {
+      ...base.atasanTandaTangan,
+      ...(raw.atasanTandaTangan || {}),
+    },
+    headerDokumen: { ...base.headerDokumen, ...(raw.headerDokumen || {}) },
   };
 }
 

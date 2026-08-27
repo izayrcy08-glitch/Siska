@@ -36,6 +36,39 @@
         -->
         <title>Siska - Laporan Kegiatan</title>
         <script>window.addEventListener("error",function(e){if(e.error instanceof DOMException&&e.error.name==="DataCloneError"&&e.message&&e.message.includes("PerformanceServerTiming")){e.stopImmediatePropagation();e.preventDefault()}},true);</script>
+        <!-- Hapus SW/cache di localhost SEBELUM bundle load (cegah flash UI lama) -->
+        <script>
+          (function () {
+            var host = location.hostname;
+            if (host !== "localhost" && host !== "127.0.0.1") return;
+            var hadController = !!(navigator.serviceWorker && navigator.serviceWorker.controller);
+            var jobs = [];
+            if ("serviceWorker" in navigator) {
+              jobs.push(
+                navigator.serviceWorker.getRegistrations().then(function (regs) {
+                  return Promise.all(regs.map(function (r) { return r.unregister(); }));
+                })
+              );
+            }
+            if (window.caches) {
+              jobs.push(
+                caches.keys().then(function (keys) {
+                  return Promise.all(keys.map(function (k) { return caches.delete(k); }));
+                })
+              );
+            }
+            if (hadController && !sessionStorage.getItem("siska-sw-cleared")) {
+              // Tahan boot React — SW lama masih bisa menyajikan bundle usang di load ini
+              window.__SISKA_HOLD_BOOT__ = true;
+              sessionStorage.setItem("siska-sw-cleared", "1");
+              Promise.all(jobs).then(function () {
+                location.reload();
+              });
+            } else {
+              Promise.all(jobs);
+            }
+          })();
+        </script>
     </head>
     <body translate="no" class="notranslate">
         <noscript>Anda perlu mengaktifkan JavaScript untuk menjalankan aplikasi ini.</noscript>
