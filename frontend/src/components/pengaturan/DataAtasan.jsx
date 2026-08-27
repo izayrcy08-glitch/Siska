@@ -37,13 +37,24 @@ const DataAtasan = ({ atasan = {}, atasanTandaTangan = {}, onChange }) => {
 
   // Samakan TTD tersimpan dengan aturan mode (mis. data lama / setelah ganti mode)
   useEffect(() => {
-    const expected = resolveTtd(header);
+    const nextAtasan = {
+      nama: atasan.nama || '',
+      nip: atasan.nip || '',
+      jabatan: atasan.jabatan || '',
+    };
+    const expected = resolveTtd(nextAtasan);
     const same =
       (atasanTandaTangan.nama || '') === expected.nama &&
       (atasanTandaTangan.nip || '') === expected.nip;
     if (same) return;
-    onChangeRef.current?.({ atasan: header, atasanTandaTangan: expected });
-  }, [header.nama, header.nip, header.jabatan, atasanTandaTangan.nama, atasanTandaTangan.nip]);
+    onChangeRef.current?.({ atasan: nextAtasan, atasanTandaTangan: expected });
+  }, [
+    atasan.nama,
+    atasan.nip,
+    atasan.jabatan,
+    atasanTandaTangan.nama,
+    atasanTandaTangan.nip,
+  ]);
 
   const updateHeader = (field, next) => {
     emit({ ...header, [field]: next });
